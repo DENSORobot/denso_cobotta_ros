@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package>
+  <name>denso_cobotta_ros</name>
+  <version>1.0.0</version>
+  <description></description>
+  <maintainer email="denso_robot_soft@denso-wave.co.jp">DENSO WAVE INCORPORATED</maintainer>
+  <license>MIT</license>
+  <url type="website"></url>
+  <author email="denso_robot_soft@denso-wave.co.jp">DENSO WAVE INCORPORATED</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <export>
+    <metapackage />
+  </export>
+</package>
