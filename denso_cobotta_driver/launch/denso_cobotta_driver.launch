@@ -1,6 +1,0 @@
-<launch>
-
-  <!-- node -->
-  <node name="denso_cobotta_driver" pkg="denso_cobotta_driver" type="denso_cobotta_driver" output="screen" ns="/cobotta"  />
-  
-</launch>
