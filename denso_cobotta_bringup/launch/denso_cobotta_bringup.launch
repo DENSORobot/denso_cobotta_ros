@@ -1,0 +1,25 @@
+<launch>
+ 
+  <!-- load the robot_description parameter before launching ROS-I nodes -->
+  <include file="$(find denso_cobotta_moveit_config)/launch/planning_context.launch" >
+    <arg name="load_robot_description" value="true" />
+  </include>
+
+  <!-- Driver node -->
+  <include file="$(find denso_cobotta_driver)/launch/denso_cobotta_driver.launch"/>
+
+  <!-- Control node -->
+  <include file="$(find denso_cobotta_control)/launch/denso_cobotta_control.launch"/>
+  
+  <!-- Gripper node -->
+  <include file="$(find denso_cobotta_gripper)/launch/denso_cobotta_gripper.launch"/>
+
+  <include file="$(find denso_cobotta_moveit_config)/launch/move_group.launch">
+    <arg name="publish_monitored_planning_scene" value="true" />
+  </include>
+
+  <include file="$(find denso_cobotta_moveit_config)/launch/moveit_rviz.launch">
+    <arg name="config" value="true"/>
+  </include>
+  
+</launch>
