@@ -1,0 +1,11 @@
+moveit_setup_assistant_config:
+  URDF:
+    package: denso_cobotta_descriptions
+    relative_path: cobotta_description/cobotta.urdf
+    xacro_args: "--inorder "
+  SRDF:
+    relative_path: config/cobotta.srdf
+  CONFIG:
+    author_name: ToshitakaSuzuki
+    author_email: toshitaka.suzuki@denso-wave.co.jp
+    generated_timestamp: 1533907720
