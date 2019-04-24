@@ -24,12 +24,14 @@
 #include <string>
 #include <cerrno>
 #include <cstring>
+#include <array>
+#include <mutex>
 
 // ROS
 #include <ros/ros.h>
-#include <std_msgs/Int32.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/UInt16.h>
+#include <realtime_tools/realtime_publisher.h>
 #include "denso_cobotta_driver/GetBrakeState.h"
 #include "denso_cobotta_driver/GetMotorState.h"
 #include "denso_cobotta_driver/SetBrakeState.h"
@@ -40,86 +42,60 @@
 #include "denso_cobotta_driver/ClearSafeState.h"
 #include "denso_cobotta_driver/RobotState.h"
 #include "denso_cobotta_driver/SafeState.h"
+#include "denso_cobotta_driver/ArmPosition.h"
 
 // COBOTTA device driver
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include "denso_cobotta_driver/cobotta_ioctl.h"
-
+#include "denso_cobotta_lib/cobotta_ioctl.h"
+#include "denso_cobotta_lib/cobotta_common.h"
+#include "denso_cobotta_lib/cobotta.h"
+#include "denso_cobotta_lib/publish_info.h"
 
 namespace denso_cobotta_driver
 {
+using namespace cobotta_common;
+using namespace denso_cobotta_lib;
+
+/**
+ * ROS node: DensoCobottaDriver
+ */
 class DensoCobottaDriver
 {
 public:
-
-  enum LedColor : uint64_t
-  {
-    no_change = 0,
-    white = 0x00645028,
-    red = 0x00640000,
-    green = 0xff053205,
-    blue = 0x00000032,
-    yellow = 0x005f3c00
-  };
-
   DensoCobottaDriver();
-  virtual ~DensoCobottaDriver();
+  virtual ~DensoCobottaDriver() = default;
 
   bool initialize(ros::NodeHandle& nh);
+  void start();
+  void stop();
   void terminate();
-  bool checkState();
-  void publishState();
-  bool fetchMiniInput();
+  void update();
+  void publish(const bool sync, const denso_cobotta_lib::cobotta::PublishInfo pi);
 
   // Service callback functions.
-  bool setMotorStateCB(SetMotorState::Request& req, SetMotorState::Response& res);
-  bool getMotorStateCB(GetMotorState::Request& req, GetMotorState::Response& res);
-  bool setBrakeStateCB(SetBrakeState::Request& req, SetBrakeState::Response& res);
-  bool getBrakeStateCB(GetBrakeState::Request& req, GetBrakeState::Response& res);
-  bool clearErrorCB(ClearError::Request& req, ClearError::Response& res);
-  bool clearRobotErrorCB(ClearError::Request& req, ClearError::Response& res);
-  bool clearSafeStateCB(ClearError::Request& req, ClearError::Response& res);
-  bool setLEDStateCB(SetLEDState::Request& req, SetLEDState::Response& res);
+  bool setMotorStateSv(SetMotorState::Request& req, SetMotorState::Response& res);
+  bool getMotorStateSv(GetMotorState::Request& req, GetMotorState::Response& res);
+  bool setBrakeStateSv(SetBrakeState::Request& req, SetBrakeState::Response& res);
+  bool getBrakeStateSv(GetBrakeState::Request& req, GetBrakeState::Response& res);
+  bool moveArmSv(ArmPosition::Request& req, ArmPosition::Response& res);
+  bool execCalsetSv(ClearError::Request& req, ClearError::Response& res);
+  bool clearErrorSv(ClearError::Request& req, ClearError::Response& res);
+  bool clearRobotErrorSv(ClearError::Request& req, ClearError::Response& res);
+  bool clearSafeStateSv(ClearError::Request& req, ClearError::Response& res);
+  bool setLedStateSv(SetLEDState::Request& req, SetLEDState::Response& res);
 
   // Subscriber callback functions.
-  void subMiniIOOutputCB(const std_msgs::UInt16::ConstPtr& msg);
+  void miniIoOutputCallback(const std_msgs::UInt16::ConstPtr& msg);
 
 private:
-  enum class MotorState
-  {
-    MotorOFF,
-    MotorON
-  };
-  enum class SafeStateType
-  {
-    Error,
-    Standby,
-    Normal
-  };
+  void dequeueDriver(long arm_no, int count, bool sync = false);
+  void dequeueSafetyMcu(int count, bool sync = false);
+  void putRosLog(const char* tag, uint32_t main_code, uint32_t sub_code);
+  const std::shared_ptr<cobotta::Cobotta>& getCobotta() const;
 
-  struct LinuxDriverVersion
-  {
-    uint8_t major;
-    uint8_t minor;
-    uint8_t rev;
-    uint8_t build;
-  };
-
-  const static uint16_t ACYCLIC_COMM_ADDRESS[2];
-  const static uint16_t ACYCLIC_COMM_VALUE[2][9];
-
-  bool getDriverVersion(struct LinuxDriverVersion* version);
-  bool motorON();
-  bool motorOFF();
-  bool clearError();
-  bool clearRobotError();
-  bool clearSafeState();
-  bool motorState(long* state);
-  bool setBrake();
-  bool getBrake();
-  bool setLED(const uint8_t red, const uint8_t green, const uint8_t blue, const uint8_t blink_rate);
-  bool setLED(const uint64_t value);
+  bool isForceClearFlag() const;
+  void setForceClearFlag(bool);
 
   // Service server
   ros::ServiceServer sv_set_motor_;
@@ -129,30 +105,32 @@ private:
   ros::ServiceServer sv_clear_safe_state_;
   ros::ServiceServer sv_set_brake_;
   ros::ServiceServer sv_get_brake_;
-  ros::ServiceServer sv_set_LED_;
+  ros::ServiceServer sv_move_arm_;
+  ros::ServiceServer sv_exec_calset_;
+  ros::ServiceServer sv_set_led_;
 
   // Publisher
-  ros::Publisher pub_position_button_;
-  ros::Publisher pub_open_button_;
-  ros::Publisher pub_close_button_;
-  ros::Publisher pub_miniIO_input_;
-  ros::Publisher pub_robot_state_;
-  ros::Publisher pub_safe_state_;
+  realtime_tools::RealtimePublisher<std_msgs::Bool> pub_function_button_;
+  realtime_tools::RealtimePublisher<std_msgs::Bool> pub_plus_button_;
+  realtime_tools::RealtimePublisher<std_msgs::Bool> pub_minus_button_;
+  realtime_tools::RealtimePublisher<std_msgs::UInt16> pub_mini_io_input_;
+  realtime_tools::RealtimePublisher<denso_cobotta_driver::RobotState> pub_robot_state_;
+  realtime_tools::RealtimePublisher<denso_cobotta_driver::SafeState> pub_safe_state_;
 
   // Subscriber
-  ros::Subscriber sub_miniIO_output_;
+  ros::Subscriber sub_mini_io_output_;
 
-  int fd_;
-  bool level5_error_flag;
-  bool safe_state_error_flag;
-  bool robot_error_flag;
+  // cobotta
+  std::shared_ptr<cobotta::Cobotta> cobotta_;
 
-  std_msgs::Bool position_button_state_;
-  std_msgs::Bool open_button_state_;
-  std_msgs::Bool close_button_state_;
+  std_msgs::Bool function_button_state_;
+  std_msgs::Bool plus_button_state_;
+  std_msgs::Bool minus_button_state_;
+  std_msgs::UInt16 mini_io_state_;
 
-  IOCTL_DATA_BRAKE brake_state_;
+  bool force_clear_flag_ = false;
+
 };
 }  // namespace denso_cobotta_driver
 
-#endif // _DENSO_COBOTTA_DRIVER_H_
+#endif  // _DENSO_COBOTTA_DRIVER_H_

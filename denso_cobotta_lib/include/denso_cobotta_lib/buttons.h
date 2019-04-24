@@ -16,23 +16,42 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-#ifndef _COBOTTA_COMMON_H_
-#define _COBOTTA_COMMON_H_
+#ifndef BUTTONS_H_
+#define BUTTONS_H_
 
-#include <string>
-#include <ros/ros.h>
+#include <memory>
 
-namespace cobotta_common
+#include "denso_cobotta_lib/cobotta.h"
+
+namespace denso_cobotta_lib
 {
-const static std::string PATH_DEVFILE = "/dev/denso_cobotta";
-const static uint32_t CONTROL_JOINT_MAX = 6;
-const static uint32_t SRVSTATE_CB_LED = 0x00010101;
-
-static ros::Duration getPeriod()
+namespace cobotta
 {
-  return ros::Duration(0.008);
-}
+class Cobotta;
 
-}  // namespace cobotta_common
+class Buttons
+{
+public:
+  static const std::string TAG;
 
-#endif  // _COBOTTA_COMMON_H_
+  Buttons();
+  Buttons(bool function_button, bool plus_button, bool minus_button, bool ip_reset_button);
+  virtual ~Buttons() = default;
+
+  bool update(bool function_button, bool plus_button, bool minus_button);
+
+  bool isMinusButtonOn() const;
+  bool isFunctionButtonOn() const;
+  bool isIpResetButtonOn() const;
+  bool isPlusButtonOn() const;
+
+private:
+  bool function_button_;
+  bool plus_button_;
+  bool minus_button_;
+};
+
+} /* namespace cobotta */
+} /* namespace denso_cobotta_lib */
+
+#endif /* BUTTONS_H_ */

@@ -34,7 +34,6 @@ int main(int argc, char** argv)
   }
 
   controller_manager::ControllerManager cm(&cobotta, nh);
-
   ros::Rate rate(1.0 / cobotta_common::getPeriod().toSec());
   ros::AsyncSpinner spinner(1);
   spinner.start();
@@ -46,20 +45,27 @@ int main(int argc, char** argv)
   {
     ros::Time now = ros::Time::now();
 
-    success = cobotta.Read(now, dt);
+    success = cobotta.read(now, dt);
     if (!success)
     {
       return 1;
     }
-    cm.update(now, dt);
 
+    /** motor start at first */
+    if (cobotta.shouldReset())
+    {
+      cm.update(now, ros::Duration(0), true);
+      continue;
+    }
+
+    cm.update(now, dt);
     if (!cobotta.isMotorOn())
     {
       rate.sleep();
       continue;
     }
 
-    success = cobotta.Write(now, dt);
+    success = cobotta.write(now, dt);
     if (!success)
     {
       return 1;
@@ -67,6 +73,9 @@ int main(int argc, char** argv)
     ros::Duration(0.001).sleep();
   }
   spinner.stop();
+
+  cobotta.sendStayHere(cobotta.getFd());
+  ROS_INFO("DensoCobotttaControl has stopped.");
 
   return 0;
 }

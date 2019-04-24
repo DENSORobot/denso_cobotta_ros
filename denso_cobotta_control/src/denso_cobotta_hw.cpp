@@ -15,15 +15,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
+#include <signal.h>
 
 #include "denso_cobotta_control/denso_cobotta_hw.h"
+#include "denso_cobotta_lib/driver.h"
 
 namespace denso_cobotta_control
 {
 using namespace cobotta_common;
-
-const double DensoCobottaHW::GEAR_RATIOS[] = { 207.563, 693.862, 329.232, 295.532, 283.218, 283.218 };
-const int DensoCobottaHW::DIRECTION[] = { 1, 1, -1, -1, 1, -1 };
+using namespace denso_cobotta_lib::cobotta;
 
 DensoCobottaHW::DensoCobottaHW()
 {
@@ -31,8 +31,6 @@ DensoCobottaHW::DensoCobottaHW()
   memset(pos_, 0, sizeof(pos_));
   memset(vel_, 0, sizeof(vel_));
   memset(eff_, 0, sizeof(eff_));
-  memset(coeff_pulse_to_outpos_, 0, sizeof(coeff_pulse_to_outpos_));
-  memset(coeff_outpos_to_pulse_, 0, sizeof(coeff_outpos_to_pulse_));
 }
 
 DensoCobottaHW::~DensoCobottaHW()
@@ -43,6 +41,7 @@ bool DensoCobottaHW::initialize(ros::NodeHandle& nh)
 {
   // Subscribers. (Start until motor_on)
   motor_on_ = false;
+  reset_ = false;
   sub_robot_state_ = nh.subscribe("robot_state", 64, &DensoCobottaHW::subRobotStateCB, this);
 
   // Open cobotta device file
@@ -54,8 +53,36 @@ bool DensoCobottaHW::initialize(ros::NodeHandle& nh)
     return false;
   }
 
-  // Calculate the coefficients for converting motor pulse[pls] <=> robot joint position[rad].
-  calcPulseConversionCoeff();
+  // load calset....
+  std::ifstream ifs(CALSET_PATH);
+  if (ifs.is_open())
+  {
+    std::string command = "rosparam load " + CALSET_PATH + " /cobotta/pulse_offset";
+    std::system(command.c_str());
+
+    if (!nh.getParam("/cobotta/pulse_offset", pulse_offset_) || pulse_offset_.size() != CONTROL_JOINT_MAX)
+    {
+      ROS_INFO("Cannot purse pulse offest.");
+      pulse_offset_.resize(CONTROL_JOINT_MAX);
+      for (auto& i : pulse_offset_)
+      {
+        i = 0;
+      }
+    }
+    else
+    {
+      ROS_INFO("Success to set pulse offest.");
+    }
+  }
+  else
+  {
+    ROS_INFO("Cannot read calset file.");
+    pulse_offset_.resize(CONTROL_JOINT_MAX);
+    for (auto& i : pulse_offset_)
+    {
+      i = 0;
+    }
+  }
 
   // Get the current encoder value and initialize joint positions.
   getEncoderData();
@@ -79,7 +106,7 @@ bool DensoCobottaHW::initialize(ros::NodeHandle& nh)
   return true;
 }
 
-bool DensoCobottaHW::Read(ros::Time time, ros::Duration period)
+bool DensoCobottaHW::read(ros::Time time, ros::Duration period)
 {
   bool success = getEncoderData();
   if (!success)
@@ -89,7 +116,7 @@ bool DensoCobottaHW::Read(ros::Time time, ros::Duration period)
   return true;
 }
 
-bool DensoCobottaHW::Write(ros::Time time, ros::Duration period)
+bool DensoCobottaHW::write(ros::Time time, ros::Duration period)
 {
   bool success = setServoUpdateData();
   if (!success)
@@ -99,96 +126,109 @@ bool DensoCobottaHW::Write(ros::Time time, ros::Duration period)
   return true;
 }
 
+/**
+ * [ASYNC] Send to stay here
+ */
+void DensoCobottaHW::sendStayHere(int fd)
+{
+  SRV_COMM_SEND send_data = {0};
+  send_data.arm_no = 0;
+  send_data.discontinuous = 0;
+  send_data.disable_cur_lim = 0;
+  send_data.stay_here = 1;
+
+  try
+  {
+    Driver::writeHwUpdate(fd, send_data);
+  }
+  catch (const std::exception& e)
+  {
+    //ROS_ERROR_STREAM(e.what());
+  }
+
+}
 bool DensoCobottaHW::setServoUpdateData()
 {
-  upd_.Send.ArmNo = 0;
-  upd_.Send.Discontinuous = 0;
-  upd_.Send.DisableCurLim = 0;
-  upd_.Send.StayHere = 0;
+  SRV_COMM_SEND send_data;
+  send_data.arm_no = 0;
+  send_data.discontinuous = 0;
+  send_data.disable_cur_lim = 0;
+  send_data.stay_here = 0;
 
   for (int i = 0; i < CONTROL_JOINT_MAX; i++)
   {
-    upd_.Send.Position[i] = coeff_outpos_to_pulse_[i] * cmd_[i];
-    upd_.Send.CurrentLimit[i] = 0x0FFF;
-    upd_.Send.CurrentOffset[i] = 0;
+    send_data.position[i] = ARM_COEFF_OUTPOS_TO_PULSE[i] * cmd_[i] - pulse_offset_[i];
+    send_data.current_limit[i] = 0x0FFF;
+    send_data.current_offset[i] = 0;
   }
 
-  errno = 0;
-  int ret = ioctl(fd_, COBOTTA_IOCTL_SRV_UPDATE, &upd_);
-  if (ret != 0)
+  try
   {
-    ROS_ERROR("ioctl(SRV_UPDATE IOCTL):%s (ret=%d errno=%d)", std::strerror(errno), ret, errno);
+    struct DriverCommandInfo info = Driver::writeHwUpdate(fd_, send_data);
+    //ROS_DEBUG("result:%08X queue:%d stay_here:%d", info.result, info.queue_num, info.stay_here);
+    if (info.result == 0x0F408101)
+    {
+      // The current number of commands in buffer is 11.
+      // To avoid buffer overflow, sleep 8 msec
+      ros::Duration(cobotta_common::getPeriod()).sleep();
+    }
+    else if (info.result == 0x84400502)
+    {
+      // buffer full
+      ROS_WARN("Command buffer overflow...");
+      ros::Duration(cobotta_common::getPeriod() * 2).sleep();
+    }
+  }
+  catch (const std::exception& e)
+  {
+    ROS_ERROR_STREAM(e.what());
     return false;
   }
-
-  if (upd_.Recv.Result == 0)
-  {
-    // Servo updating without delay.
-  }
-  else if (upd_.Recv.Result == 0x0F408101)
-  {
-    // The current number of commands in buffer is 11.
-    // To avoid buffer overflow, sleep 8 msec.
-    ros::Duration(0.008).sleep();
-  }
-  else
-  {
-    ROS_ERROR_THROTTLE(1,
-                       "DensoCobottaHW: Command buffer overflow or other errors."
-                       " (res=0x%08x state=0x%04x num=%d)",
-                       upd_.Recv.Result, (upd_.Recv.BuffState & 0xffff0000) >> 16, (upd_.Recv.BuffState & 0x0ffff));
-    return false;
-  }
-
   return true;
 }
 
 bool DensoCobottaHW::getEncoderData()
 {
-  static IOCTL_DATA_GETENC encData_;
-  encData_.Arm = 0;
-  errno = 0;
-  int ret = ioctl(fd_, COBOTTA_IOCTL_SRV_GETENC, &encData_);
-  if (ret != 0)
+  SRV_COMM_RECV recv_data{ 0 };
+
+  try
   {
-    ROS_ERROR("ioctl(SRV_GETENC IOCTL): %s (ret=%d errno=%d)", std::strerror(errno), ret, errno);
+    recv_data = Driver::readHwEncoder(fd_, 0);
+  }
+  catch (const CobottaException& e)
+  {
+    ROS_ERROR_STREAM(e.what());
+    return false;
+  }
+  catch (const std::exception& e)
+  {
+    ROS_ERROR_STREAM(e.what());
     return false;
   }
 
   // Update current position.
   for (int i = 0; i < CONTROL_JOINT_MAX; i++)
   {
-    pos_[i] = coeff_pulse_to_outpos_[i] * encData_.Recv.Encoder[i];
+    pos_[i] = (1 / ARM_COEFF_OUTPOS_TO_PULSE[i]) * (recv_data.encoder[i] + pulse_offset_[i]);
   }
   return true;
-}
-
-void DensoCobottaHW::calcPulseConversionCoeff()
-{
-  for (int i = 0; i < CONTROL_JOINT_MAX; i++)
-  {
-    // Motor pulse => Robot joint position.
-    coeff_pulse_to_outpos_[i] = DIRECTION[i] * (1.0 / 1024.0) * 2.0 * M_PI / GEAR_RATIOS[i];
-    // Robot joint Position => motor pulse.
-    coeff_outpos_to_pulse_[i] = DIRECTION[i] * GEAR_RATIOS[i] * (1.0 / (2.0 * M_PI)) * 1024.0;
-  }
 }
 
 void DensoCobottaHW::subRobotStateCB(const denso_cobotta_driver::RobotState& msg)
 {
   switch (msg.state_code)
   {
-    case 0x0f200201: // motor on
+    case 0x0f200201:  // motor on
       motor_on_ = true;
-      ROS_DEBUG("DensoCobottaHW: motor on");
+      reset_ = true;
+      ROS_DEBUG("motor on");
       break;
-    case 0x0f200202: // motor off
+    case 0x0f200202:  // motor off
       motor_on_ = false;
-      ROS_DEBUG("DensoCobottaHW: motor off");
+      ROS_DEBUG("motor off");
       break;
   }
-  ROS_DEBUG("DensoCobottaHW: msg received. ArmNo=%d code=0x%08X sub=0x%08X",
-            msg.arm_no, msg.state_code, msg.state_subcode);
+  ROS_DEBUG("msg received. ArmNo=%d code=0x%08X sub=0x%08X", msg.arm_no, msg.state_code, msg.state_subcode);
 }
 
 // @return ture:on false:off
@@ -197,4 +237,19 @@ bool DensoCobottaHW::isMotorOn(void)
   return motor_on_;
 }
 
-}  // namespace denso_cobotta_control
+bool DensoCobottaHW::shouldReset(void)
+{
+  if (this->reset_)
+  {
+    this->reset_ = false;
+    return true;
+  }
+  return false;
+}
+
+int DensoCobottaHW::getFd() const
+{
+  return fd_;
+}
+} // namespace denso_cobotta_control
+

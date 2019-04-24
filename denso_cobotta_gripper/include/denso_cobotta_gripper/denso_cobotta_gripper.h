@@ -28,6 +28,7 @@
 // ROS
 #include <ros/ros.h>
 #include <control_msgs/GripperCommandAction.h>
+#include <std_msgs/Bool.h>
 #include <std_msgs/Int32.h>
 #include <std_msgs/Float64.h>
 #include <std_msgs/Float64MultiArray.h>
@@ -38,7 +39,7 @@
 // COBOTTA device driver
 #include <sys/ioctl.h>
 #include <fcntl.h>
-#include "denso_cobotta_driver/cobotta_ioctl.h"
+#include "denso_cobotta_lib/cobotta_ioctl.h"
 #include "denso_cobotta_driver/RobotState.h"
 
 namespace denso_cobotta_gripper
@@ -55,26 +56,30 @@ public:
   bool gripperCurPos(double& current_position);
   bool gripperBusyState(bool& state);
 
-  bool Read();
-  bool Write();
+  bool read();
+  bool write();
   bool isMotorOn();
+
+  static void sendStayHere(int fd);
+  int getFd() const;
 
 private:
   // Constants
-  constexpr static double MAX_POSITION = 0.03;
-  constexpr static double MIN_POSITION = 0.0;
-  constexpr static double MAX_VELOCITY = 0.08;
-  constexpr static double MAX_ACCELERATION = 0.8;
-  constexpr static double MAX_SPEED = 100.0;
-  constexpr static double MIN_SPEED = 1.0;
-  constexpr static double MAX_EFFORT = 20.0;
-  constexpr static double MIN_EFFORT = 6.0;
-  constexpr static double COEFF_OUTPOS_TO_PULSE = 2481230.769;
-  constexpr static double COEFF_EFFORT_TO_TORQUE = 0.0305;
+  constexpr static double GRIPPER_MAX_POSITION = 0.03;
+  constexpr static double GRIPPER_MIN_POSITION = 0.0;
+  constexpr static double GRIPPER_MAX_VELOCITY = 0.08;
+  constexpr static double GRIPPER_MAX_ACCELERATION = 0.8;
+  constexpr static double GRIPPER_MAX_SPEED = 100.0;
+  constexpr static double GRIPPER_MIN_SPEED = 1.0;
+  constexpr static double GRIPPER_MAX_EFFORT = 20.0;
+  constexpr static double GRIPPER_MIN_EFFORT = 6.0;
+  constexpr static double GRIPPER_COEFF_OUTPOS_TO_PULSE = 2481230.769;
+  constexpr static double GRIPPER_COEFF_EFFORT_TO_TORQUE = 0.0305;
 
   bool setGripperCommand();
   bool setServoUpdateData();
   bool getEncoderData();
+  bool publishGripperState();
 
   // Subscriber callback functions.
   void subRobotStateCB(const denso_cobotta_driver::RobotState& msg);
@@ -91,6 +96,9 @@ private:
 
   // Publisher
   ros::Publisher pub_joint_state_;
+  ros::Publisher pub_gripper_state_;
+
+  std_msgs::Bool gripper_state_;
 
   // Subscriber
   ros::Subscriber sub_robot_state_;
@@ -103,7 +111,7 @@ private:
   double current_effort_;
   double start_position_;
   bool move_complete_;
-  bool motor_on_; // true:on false:off
+  bool motor_on_;  // true:on false:off
 
   int fd_;
 
@@ -112,4 +120,4 @@ private:
 
 }  // namespace denso_cobotta_gripper
 
-#endif // _DENSO_COBOTTA_GRIPPER_H_
+#endif  // _DENSO_COBOTTA_GRIPPER_H_

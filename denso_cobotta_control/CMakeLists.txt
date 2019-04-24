@@ -10,13 +10,14 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
   transmission_interface
+  denso_cobotta_lib
   denso_cobotta_driver
 )
 
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES denso_cobotta_control
-  CATKIN_DEPENDS controller_manager hardware_interface joint_limits_interface roscpp std_msgs transmission_interface
+  CATKIN_DEPENDS controller_manager hardware_interface joint_limits_interface roscpp std_msgs transmission_interface denso_cobotta_lib
 )
 
 ###########

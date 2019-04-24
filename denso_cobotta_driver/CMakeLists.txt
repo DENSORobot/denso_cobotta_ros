@@ -3,14 +3,19 @@ project(denso_cobotta_driver)
 
 add_compile_options(-std=c++11)
 
+set(CMAKE_CXX_STANDARD 14)
+
 find_package(catkin REQUIRED COMPONENTS
   message_generation
   roscpp
+  realtime_tools
   std_msgs
+  denso_cobotta_lib
 )
 
 add_service_files(
    FILES
+   ArmPosition.srv
    SetMotorState.srv
    GetMotorState.srv
    ClearError.srv
@@ -35,6 +40,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include
   CATKIN_DEPENDS message_runtime roscpp std_msgs
+  LIBRARIES denso_cobotta_lib  
 )
 
 ###########
@@ -42,12 +48,14 @@ catkin_package(
 ###########
 
 include_directories(
- include
+  include
+# include/${PROJECT_NAME}/cobotta
   ${catkin_INCLUDE_DIRS}
 )
+
 add_executable(${PROJECT_NAME} 
   src/denso_cobotta_driver.cpp
-  src/cobotta_state.cpp)
+  )
 
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_generate_messages_cpp)
 

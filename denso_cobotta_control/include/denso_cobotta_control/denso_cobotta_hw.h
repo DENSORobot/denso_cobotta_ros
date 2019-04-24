@@ -36,14 +36,15 @@
 #include "denso_cobotta_driver/SetMotorState.h"
 #include "denso_cobotta_driver/SetLEDState.h"
 #include "denso_cobotta_driver/ClearError.h"
+#include "denso_cobotta_driver/RobotState.h"
 
 // COBOTTA device driver
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/ioctl.h>
-#include "denso_cobotta_driver/cobotta_ioctl.h"
-#include "denso_cobotta_driver/cobotta_common.h"
-#include "denso_cobotta_driver/RobotState.h"
+#include "denso_cobotta_lib/cobotta_ioctl.h"
+#include "denso_cobotta_lib/cobotta_common.h"
+#include "denso_cobotta_lib/cobotta_exception.h"
 
 namespace denso_cobotta_control
 {
@@ -57,9 +58,14 @@ public:
 
   bool initialize(ros::NodeHandle& nh);
 
-  bool Read(ros::Time, ros::Duration);
-  bool Write(ros::Time, ros::Duration);
+  bool read(ros::Time, ros::Duration);
+  bool write(ros::Time, ros::Duration);
   bool isMotorOn();
+  bool shouldReset();
+  void clearReset();
+
+  static void sendStayHere(int fd);
+  int getFd() const;
 
   // Subscriber callback functions.
   void subRobotStateCB(const denso_cobotta_driver::RobotState& msg);
@@ -68,11 +74,6 @@ public:
   ros::Subscriber sub_robot_state_;
 
 private:
-  // Constants
-  const static double GEAR_RATIOS[CONTROL_JOINT_MAX];
-  const static int DIRECTION[CONTROL_JOINT_MAX];
-
-  void calcPulseConversionCoeff();
   bool setServoUpdateData();
   bool getEncoderData();
 
@@ -83,13 +84,14 @@ private:
   double pos_[CONTROL_JOINT_MAX];
   double vel_[CONTROL_JOINT_MAX];
   double eff_[CONTROL_JOINT_MAX];
-  double coeff_pulse_to_outpos_[CONTROL_JOINT_MAX];
-  double coeff_outpos_to_pulse_[CONTROL_JOINT_MAX];
-  bool motor_on_; // true:on false:off
+  bool motor_on_;  // true:on false:off
+  bool reset_;
+
+  std::vector<int32_t> pulse_offset_;
 
   IOCTL_DATA_UPDATE upd_;
 
   int fd_;
 };
 }  // namespace denso_cobotta_control
-#endif // _DENSO_COBOTTA_HW_H_
+#endif  // _DENSO_COBOTTA_HW_H_

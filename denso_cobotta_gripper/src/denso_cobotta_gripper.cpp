@@ -15,9 +15,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
-
 #include "denso_cobotta_gripper/denso_cobotta_gripper.h"
-#include "denso_cobotta_driver/cobotta_common.h"
+#include "denso_cobotta_lib/cobotta_common.h"
+#include "denso_cobotta_lib/cobotta_exception.h"
+#include "denso_cobotta_lib/driver.h"
 
 int main(int argc, char** argv)
 {
@@ -34,13 +35,13 @@ int main(int argc, char** argv)
   }
   ROS_INFO_STREAM("Success to initialize denso_cobotta_gripper.");
 
-  ros::Rate rate(1.0 / cobotta_common::getPeriod().toSec());
   ros::AsyncSpinner spinner(1);
+  ros::Rate rate(1.0 / cobotta_common::getPeriod().toSec());
   spinner.start();
 
   while (ros::ok())
   {
-    success = gripper.Read();
+    success = gripper.read();
     if (!success)
     {
       return 1;
@@ -52,7 +53,7 @@ int main(int argc, char** argv)
       continue;
     }
 
-    success = gripper.Write();
+    success = gripper.write();
     if (!success)
     {
       return 1;
@@ -61,12 +62,15 @@ int main(int argc, char** argv)
   }
   spinner.stop();
 
+  gripper.sendStayHere(gripper.getFd());
+  ROS_INFO("DensoCobotttaGripper has stopped.");
   return 0;
 }
 
 namespace denso_cobotta_gripper
 {
 using namespace cobotta_common;
+using namespace denso_cobotta_lib::cobotta;
 
 DensoCobottaGripper::DensoCobottaGripper() : current_position_(0.0), current_effort_(20.0)
 {
@@ -94,6 +98,8 @@ bool DensoCobottaGripper::initialize(ros::NodeHandle& nh)
 
   // Publisher
   pub_joint_state_ = nh.advertise<sensor_msgs::JointState>("joint_states", 1);
+  pub_gripper_state_ = nh.advertise<std_msgs::Bool>("gripper_state", 1);
+
   // Action server
   as_gripper_move_ = std::make_shared<actionlib::SimpleActionServer<GripperMoveAction> >(
       nh, "gripper_move", std::bind(&DensoCobottaGripper::gripperMoveActionCB, this, std::placeholders::_1), false);
@@ -122,12 +128,12 @@ bool DensoCobottaGripper::initialize(ros::NodeHandle& nh)
   return true;
 }
 
-bool DensoCobottaGripper::Read()
+bool DensoCobottaGripper::read()
 {
-  return getEncoderData();
+  return publishGripperState() && getEncoderData();
 }
 
-bool DensoCobottaGripper::Write()
+bool DensoCobottaGripper::write()
 {
   return setServoUpdateData();
 }
@@ -172,6 +178,11 @@ void DensoCobottaGripper::cancelCB()
   return;
 }
 
+int DensoCobottaGripper::getFd() const
+{
+  return fd_;
+}
+
 void DensoCobottaGripper::actionFeedback()
 {
   GripperMoveFeedback feedback;
@@ -182,23 +193,22 @@ void DensoCobottaGripper::actionFeedback()
 
 bool DensoCobottaGripper::gripperMove(const double& target_position, const double& speed, const double& effort)
 {
-  if ((target_position < MIN_POSITION) || (target_position > MAX_POSITION))
+  if ((target_position < GRIPPER_MIN_POSITION) || (target_position > GRIPPER_MAX_POSITION))
   {
-    ROS_ERROR("DensoCobottaGripper: target_position is out of range(%lf). Min is %lf. Max is %lf.", target_position,
-              MIN_POSITION, MAX_POSITION);
+    ROS_ERROR("target_position is out of range(%lf). Min is %lf. Max is %lf.", target_position, GRIPPER_MIN_POSITION,
+              GRIPPER_MAX_POSITION);
     return false;
   }
 
-  if ((speed < MIN_SPEED) || (speed > MAX_SPEED))
+  if ((speed < GRIPPER_MIN_SPEED) || (speed > GRIPPER_MAX_SPEED))
   {
-    ROS_ERROR("DensoCobottaGripper: speed is out of range(%lf). Min is %lf. Max is %lf.", speed, MIN_SPEED, MAX_SPEED);
+    ROS_ERROR("speed is out of range(%lf). Min is %lf. Max is %lf.", speed, GRIPPER_MIN_SPEED, GRIPPER_MAX_SPEED);
     return false;
   }
 
-  if ((effort < MIN_EFFORT) || (effort > MAX_EFFORT))
+  if ((effort < GRIPPER_MIN_EFFORT) || (effort > GRIPPER_MAX_EFFORT))
   {
-    ROS_ERROR("DensoCobottaGripper: effort is out of range(%lf). Min is %lf. Max is %lf.", effort, MIN_EFFORT,
-              MAX_EFFORT);
+    ROS_ERROR("effort is out of range(%lf). Min is %lf. Max is %lf.", effort, GRIPPER_MIN_EFFORT, GRIPPER_MAX_EFFORT);
     return false;
   }
 
@@ -239,10 +249,10 @@ bool DensoCobottaGripper::setGripperCommand()
 {
   if (gripper_mtx_.try_lock())
   {
-    const double vel_max = MAX_VELOCITY * current_speed_ * 0.01;
+    const double vel_max = GRIPPER_MAX_VELOCITY * current_speed_ * 0.01;
     const double direction = ((current_target_position_ - start_position_) >= 0.0) ? 1.0 : -1.0;
-    const double cmd_vel_increment = MAX_ACCELERATION * getPeriod().toSec();
-    const double slowdown_length = std::pow(current_cmd_velocity_, 2) * 0.5 / MAX_ACCELERATION;
+    const double cmd_vel_increment = GRIPPER_MAX_ACCELERATION * getPeriod().toSec();
+    const double slowdown_length = std::pow(current_cmd_velocity_, 2) * 0.5 / GRIPPER_MAX_ACCELERATION;
     const double position_error = std::abs(current_target_position_ - current_cmd_position_);
     double target_velocity;
     if (position_error >= slowdown_length)
@@ -304,69 +314,88 @@ bool DensoCobottaGripper::setGripperCommand()
   return true;
 }
 
+/**
+ * [ASYNC] Send to stay here.
+ */
+void DensoCobottaGripper::sendStayHere(int fd)
+{
+  SRV_COMM_SEND send_data{ 0 };
+  send_data.arm_no = 1;
+  send_data.discontinuous = 0;
+  send_data.disable_cur_lim = 0;
+  send_data.stay_here = 1;
+  try
+  {
+    Driver::writeHwUpdate(fd, send_data);
+  }
+  catch (const std::exception& e)
+  {
+    // ROS_ERROR_STREAM(e.what());
+  }
+}
+
 bool DensoCobottaGripper::setServoUpdateData()
 {
   setGripperCommand();
 
   // ArmNo: 0 => J1 to J6.
   // ArmNo: 1 => Gripper
-  static IOCTL_DATA_UPDATE servo_upd_data_;
-  servo_upd_data_.Send.ArmNo = 1;
-  servo_upd_data_.Send.Discontinuous = 0;
-  servo_upd_data_.Send.DisableCurLim = 0;
-  servo_upd_data_.Send.StayHere = 0;
-  servo_upd_data_.Send.Position[0] = COEFF_OUTPOS_TO_PULSE * current_cmd_position_;
-  servo_upd_data_.Send.CurrentLimit[0] = COEFF_EFFORT_TO_TORQUE * current_effort_ * 1000;
-  servo_upd_data_.Send.CurrentOffset[0] = 0;
+  SRV_COMM_SEND send_data{ 0 };
+  send_data.arm_no = 1;
+  send_data.discontinuous = 0;
+  send_data.disable_cur_lim = 0;
+  send_data.stay_here = 0;
 
-  errno = 0;
-  int ret = ioctl(fd_, COBOTTA_IOCTL_SRV_UPDATE, &servo_upd_data_);
-  if (ret != 0)
+  send_data.position[0] = GRIPPER_COEFF_OUTPOS_TO_PULSE * current_cmd_position_;
+  send_data.current_limit[0] = GRIPPER_COEFF_EFFORT_TO_TORQUE * current_effort_ * 1000;
+  send_data.current_offset[0] = 0;
+
+  try
   {
-    ROS_ERROR("ioctl(SRV_UPDATE): %s (ret=%d errno=%d"
-              " ArmNo=1 Discontinuous=0 DisableCurLim=0 )",
-              std::strerror(errno), ret, errno);
+    struct DriverCommandInfo info = Driver::writeHwUpdate(fd_, send_data);
+    //ROS_DEBUG("result:%08X queue:%d stay_here:%d", info.result, info.queue_num, info.stay_here);
+    if (info.result == 0x0F408101)
+    {
+      // The current number of commands in buffer is 11.
+      // To avoid buffer overflow, sleep 8 msec
+      ros::Duration(cobotta_common::getPeriod()).sleep();
+    }
+    else if (info.result == 0x84400502)
+    {
+      // buffer full
+      ROS_WARN("Command buffer overflow...");
+      ros::Duration(cobotta_common::getPeriod() * 2).sleep();
+    }
+  }
+  catch (const std::exception& e)
+  {
+    ROS_ERROR_STREAM(e.what());
     return false;
   }
-
-  if (servo_upd_data_.Recv.Result == 0)
-  {
-    // Servo updating with no delay.
-  }
-  else if (servo_upd_data_.Recv.Result == 0x0F408101)
-  {
-    // The current number of commands in buffer is 11.
-    // To avoid vuffer overflow, sleep 8msec.
-    ros::Duration(0.008).sleep();
-  }
-  else
-  {
-    ROS_ERROR_THROTTLE(1,
-                       "DensoCobottaGripper: Command buffer overflow or other errors."
-                       " (res=0x%08x state=0x%04x num=%d ArmNo=1)",
-                       servo_upd_data_.Recv.Result, (servo_upd_data_.Recv.BuffState & 0xffff0000) >> 16,
-                       (servo_upd_data_.Recv.BuffState & 0x0ffff));
-    return false;
-  }
-
   return true;
 }
 
 bool DensoCobottaGripper::getEncoderData()
 {
-  // Arm:0 => J1 to J6.
-  // Arm:1 => Gripper.
-  static IOCTL_DATA_GETENC encoder_data_;
-  encoder_data_.Arm = 1;
-  errno = 0;
-  int ret = ioctl(fd_, COBOTTA_IOCTL_SRV_GETENC, &encoder_data_);
-  if (ret != 0)
+  SRV_COMM_RECV recv_data{ 0 };
+  try
   {
-    ROS_ERROR("ioctl(SRV_GETENC): %s (ret=%d errno=%d)", std::strerror(errno), ret, errno);
+    // Arm:0 => J1 to J6.
+    // Arm:1 => Gripper.
+    recv_data = Driver::readHwEncoder(fd_, 1);
+  }
+  catch (const CobottaException& e)
+  {
+    ROS_ERROR_STREAM(e.what());
+    return false;
+  }
+  catch (const std::exception& e)
+  {
+    ROS_ERROR_STREAM(e.what());
     return false;
   }
 
-  current_position_ = encoder_data_.Recv.Encoder[0] / COEFF_OUTPOS_TO_PULSE;
+  current_position_ = recv_data.encoder[0] / GRIPPER_COEFF_OUTPOS_TO_PULSE;
 
   // Publish joint data to joint state publisher.
   sensor_msgs::JointState gripper;
@@ -377,6 +406,28 @@ bool DensoCobottaGripper::getEncoderData()
   // As we use mimic joint, mutiply by 0.5 to get the intended width.
   gripper.position[0] = current_position_ * 0.5;
   pub_joint_state_.publish(gripper);
+
+  return true;
+}
+
+bool DensoCobottaGripper::publishGripperState()
+{
+  try
+  {
+    auto gripper_state = Driver::readHwGripperState(fd_);
+    gripper_state_.data = gripper_state != 0;
+    pub_gripper_state_.publish(gripper_state_);
+  }
+  catch (const CobottaException& e)
+  {
+    ROS_ERROR_STREAM(e.what());
+    return false;
+  }
+  catch (const std::exception& e)
+  {
+    ROS_ERROR_STREAM(e.what());
+    return false;
+  }
 
   return true;
 }
@@ -418,15 +469,14 @@ void DensoCobottaGripper::subRobotStateCB(const denso_cobotta_driver::RobotState
   {
     case 0x0f200201:  // motor on
       motor_on_ = true;
-      ROS_DEBUG("DensoCobottaGripper: motor on");
+      ROS_DEBUG("motor on");
       break;
     case 0x0f200202:  // motor off
       motor_on_ = false;
-      ROS_DEBUG("DensoCobottaGripper: motor off");
+      ROS_DEBUG("motor off");
       break;
   }
-  ROS_DEBUG("DensoCobottaGripper: msg received. ArmNo=%d code=0x%08X sub=0x%08X", msg.arm_no, msg.state_code,
-            msg.state_subcode);
+  ROS_DEBUG("msg received. ArmNo=%d code=0x%08X sub=0x%08X", msg.arm_no, msg.state_code, msg.state_subcode);
 }
 
 // @return ture:on false:off

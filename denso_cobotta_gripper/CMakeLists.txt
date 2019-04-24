@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   transmission_interface
   actionlib
   actionlib_msgs
+  denso_cobotta_lib
   denso_cobotta_driver
 )
  add_action_files(
@@ -29,7 +30,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES denso_cobotta_gripper
-  CATKIN_DEPENDS controller_manager hardware_interface joint_limits_interface message_runtime roscpp std_msgs transmission_interface actionlib actionlib_msgs
+  CATKIN_DEPENDS controller_manager hardware_interface joint_limits_interface message_runtime roscpp std_msgs transmission_interface actionlib actionlib_msgs denso_cobotta_lib
 )
 
 ###########

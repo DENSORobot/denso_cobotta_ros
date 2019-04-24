@@ -1,6 +1,8 @@
 <launch>
 
   <!-- node -->
-  <node name="denso_cobotta_gripper" pkg="denso_cobotta_gripper" type="denso_cobotta_gripper" output="screen" ns="/cobotta"  />
-  
+  <node name="denso_cobotta_gripper" pkg="denso_cobotta_gripper" type="denso_cobotta_gripper" output="screen" ns="/cobotta">
+    <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${time}]: ${node}: ${message}"/>
+  </node>
+
 </launch>

@@ -1,6 +1,9 @@
 <launch>
 
   <!-- node -->
-  <node name="denso_cobotta_driver" pkg="denso_cobotta_driver" type="denso_cobotta_driver" output="screen" ns="/cobotta"  />
-  
+  <node name="denso_cobotta_driver" pkg="denso_cobotta_driver" type="denso_cobotta_driver" output="screen" ns="/cobotta">
+    <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${time}]: ${node}: ${message}"/>
+    <rosparam param="rang_value" ns="/cobotta">[152.79094, -63.17169, 141.93864, -171.84352, 140.59970, 173.24869]</rosparam>
+  </node>
+
 </launch>
