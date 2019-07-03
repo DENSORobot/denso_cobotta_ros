@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package>
+  <name>denso_cobotta_ros</name>
+  <version>1.2.1</version>
+  <description>Package for COBOTTA OSS</description>
+  <maintainer email="fa-support@denso-wave.co.jp">DENSO WAVE INCORPORATED</maintainer>
+  <license>GPL</license>
+  <author email="fa-support@denso-wave.co.jp">DENSO WAVE INCORPORATED</author>
+  <url type="website">http://wiki.ros.org/denso_cobotta_ros</url>
+  <buildtool_depend>catkin</buildtool_depend>
+  <export>
+    <metapackage />
+  </export>
+</package>

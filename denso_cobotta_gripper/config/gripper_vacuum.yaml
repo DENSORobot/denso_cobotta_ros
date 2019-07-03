@@ -1,0 +1,10 @@
+max_soft_limit: 1.79769e+308
+min_soft_limit: -1.79769e+308
+max_velocity: 349.06585
+max_acceleration: 698.13172
+max_speed_percentage: 100.0
+min_speed_percentage: 40.0
+max_effort: 0.0
+min_effort: 0.0
+coeff_outpos_to_pulse: 244.461992589
+coeff_effort_to_torque: 0.0305
