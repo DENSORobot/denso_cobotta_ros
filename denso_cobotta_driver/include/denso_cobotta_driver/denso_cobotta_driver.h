@@ -42,7 +42,7 @@
 #include "denso_cobotta_driver/ClearSafeState.h"
 #include "denso_cobotta_driver/RobotState.h"
 #include "denso_cobotta_driver/SafeState.h"
-#include "denso_cobotta_driver/ArmPosition.h"
+#include "denso_cobotta_driver/ExecCalset.h"
 
 // COBOTTA device driver
 #include <fcntl.h>
@@ -78,8 +78,7 @@ public:
   bool getMotorStateSv(GetMotorState::Request& req, GetMotorState::Response& res);
   bool setBrakeStateSv(SetBrakeState::Request& req, SetBrakeState::Response& res);
   bool getBrakeStateSv(GetBrakeState::Request& req, GetBrakeState::Response& res);
-  // bool moveArmSv(ArmPosition::Request& req, ArmPosition::Response& res);
-  bool execCalsetSv(ClearError::Request& req, ClearError::Response& res);
+  bool execCalsetSv(ExecCalset::Request& req, ExecCalset::Response& res);
   bool clearErrorSv(ClearError::Request& req, ClearError::Response& res);
   bool clearRobotErrorSv(ClearError::Request& req, ClearError::Response& res);
   bool clearSafeStateSv(ClearError::Request& req, ClearError::Response& res);
@@ -121,7 +120,6 @@ private:
   ros::ServiceServer sv_clear_safe_state_;
   ros::ServiceServer sv_set_brake_;
   ros::ServiceServer sv_get_brake_;
-  // ros::ServiceServer sv_move_arm_;
   ros::ServiceServer sv_exec_calset_;
   ros::ServiceServer sv_set_led_;
 

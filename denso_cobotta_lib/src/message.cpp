@@ -22,8 +22,6 @@ namespace denso_cobotta_lib
 {
 namespace cobotta
 {
-const char* Message::TAG = "Message";
-
 /**
  * Constructs a Message object.
  * @param code code number defined the message table

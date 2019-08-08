@@ -22,8 +22,6 @@ namespace denso_cobotta_lib
 {
 namespace cobotta
 {
-static const std::string TAG = "Buttons";
-
 Buttons::Buttons()
 {
 }

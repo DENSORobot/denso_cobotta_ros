@@ -25,9 +25,9 @@ namespace denso_cobotta_gripper
 {
 enum class VacuumMoveDirection
 {
-  suction = -1,
-  stop = 0,
-  blow = 1,
+  Suction = -1,
+  Stop = 0,
+  Blow = 1,
 };
 
 using namespace denso_cobotta_gripper;
@@ -35,7 +35,7 @@ using namespace denso_cobotta_gripper;
 class GripperVacuum : public GripperBase
 {
 public:
-  static const char* TAG;
+  static constexpr const char* TAG = "GripperVacuum";
 
   GripperVacuum();
   virtual ~GripperVacuum() = default;
@@ -48,12 +48,13 @@ private:
   bool publish(void);
   bool subscribe(void);
   bool initActionServers(ros::NodeHandle& nh);
-  bool initGripperMove(const double& target_position, const double& speed_percentage, const double& effort);
+  bool initGripperMove(const double& target_position, const double& speed_percentage);
   bool updateVacuumDetectParameter(double speed_percentage);
 
   // Action callback functions.
-  bool vacuumMoveActionCB(const VacuumMoveGoalConstPtr& goal);
-  void cancelCB(void);
+  bool vacuumMoveActionGoal(const VacuumMoveGoalConstPtr& goal);
+  void actionCancel(void);
+  void actionFeedback();
 
   // Action servers.
   std::shared_ptr<actionlib::SimpleActionServer<VacuumMoveAction>> as_vacuum_move_;

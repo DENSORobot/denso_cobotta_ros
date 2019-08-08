@@ -35,10 +35,10 @@ class Cobotta;
 
 enum class MotorState
 {
-  OFF = 0,
-  ON = 1,
-  ONPROC = 2,
-  SLOWDOWNSTOP = 3,
+  Off = 0,
+  On = 1,
+  OnProc = 2,
+  SlowDownStop = 3,
 };
 
 /**
@@ -48,7 +48,7 @@ enum class MotorState
 class Motor
 {
 public:
-  static const char *TAG;
+  static constexpr const char* TAG = "Motor";
 
   Motor(std::shared_ptr<Cobotta> parent);
   Motor(std::shared_ptr<Cobotta> parent, const enum MotorState state);
@@ -73,7 +73,7 @@ private:
   std::shared_ptr<cobotta::Cobotta> getParent() const;
 
   std::shared_ptr<cobotta::Cobotta> parent_ = nullptr;
-  enum MotorState state_ = MotorState::OFF;
+  enum MotorState state_ = MotorState::Off;
 
 };
 

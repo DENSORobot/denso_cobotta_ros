@@ -42,17 +42,17 @@ struct LedColor
 
 enum class LedColorTable : uint32_t
 {
-  WHITE = 0x00645028,
-  RED = 0x00640000,
-  GREEN = 0xff053205,
-  BLUE = 0x00000032,
-  YELLOW = 0x005f3c00
+  White = 0x00645028,
+  Red = 0x00640000,
+  Green = 0xff053205,
+  Blue = 0x00000032,
+  Yellow = 0x005f3c00
 };
 
 class Led
 {
 public:
-  static const char* TAG;
+  static constexpr const char* TAG = "Led";
 
   Led(std::shared_ptr<Cobotta> parent);
   virtual ~Led() = default;

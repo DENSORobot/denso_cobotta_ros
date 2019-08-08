@@ -57,7 +57,7 @@ struct StateCode
 class Cobotta : public std::enable_shared_from_this<Cobotta>
 {
 public:
-  static const char* TAG;
+  static constexpr const char* TAG = "Cobotta";
 
   Cobotta();
   virtual ~Cobotta() = default;

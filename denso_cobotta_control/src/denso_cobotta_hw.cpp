@@ -42,51 +42,19 @@ bool DensoCobottaHW::initialize(ros::NodeHandle& nh)
 {
   // Subscribers. (Start until motor_on)
   reset_ = false;
-  sub_robot_state_ = nh.subscribe("robot_state", 64, &DensoCobottaHW::subRobotStateCB, this);
+  sub_robot_state_ = nh.subscribe("robot_state", 64, &DensoCobottaHW::subRobotState, this);
 
   // Open cobotta device file
   errno = 0;
-  fd_ = open(PATH_DEVFILE.c_str(), O_RDWR);
+  fd_ = open(PATH_DEVFILE, O_RDWR);
   if (fd_ < 0)
   {
-    ROS_ERROR("open(%s): %s", PATH_DEVFILE.c_str(), std::strerror(errno));
+    ROS_ERROR("open(%s): %s", PATH_DEVFILE, std::strerror(errno));
     return false;
   }
 
-  // Load the CALSET data ....
-  bool success_read_params = true;
-  try
-  {
-    YAML::Node cobotta_params = YAML::LoadFile(TEMP_PARAMS_PATH);
-    pulse_offset_ = cobotta_params["pulse_offset"].as<std::vector<int>>();
-    if (pulse_offset_.size() != CONTROL_JOINT_MAX)
-    {
-      ROS_WARN("The number of elements is invalid.");
-      success_read_params = false;
-    }
-    else
-    {
-      ROS_INFO("Success to apply the CALSET data.");
-    }
-  }
-  catch (YAML::BadFile& e)
-  {
-    ROS_INFO("Cannot read %s.", TEMP_PARAMS_PATH.c_str());
-    success_read_params = false;
-  }
-  catch (std::exception& e)
-  {
-    ROS_WARN("Cannot parse 'pulse_offset' in %s.", TEMP_PARAMS_PATH.c_str());
-    success_read_params = false;
-  }
-  if (!success_read_params)
-  {
-    pulse_offset_.resize(CONTROL_JOINT_MAX);
-    for (auto& i : pulse_offset_)
-    {
-      i = 0;
-    }
-  }
+  // Load the CALSET data.
+  loadCalsetData();
 
   // Get the current encoder value and initialize joint positions.
   getEncoderData();
@@ -169,9 +137,40 @@ void DensoCobottaHW::sendStayHere(int fd)
   }
   catch (const std::exception& e)
   {
-    // ROS_ERROR_STREAM(e.what());
+    //ROS_ERROR_STREAM(e.what());
   }
 }
+
+bool DensoCobottaHW::loadCalsetData()
+{
+  try
+  {
+    YAML::Node cobotta_params = YAML::LoadFile(cobotta_common::TEMP_PARAMS_PATH);
+    pulse_offset_ = cobotta_params["pulse_offset"].as<std::vector<int>>();
+    if (pulse_offset_.size() == CONTROL_JOINT_MAX)
+    {
+      ROS_INFO("Success to apply the CALSET data.");
+      return true;
+    }
+    ROS_WARN("The number of elements is invalid.");
+  }
+  catch (YAML::BadFile& e)
+  {
+    ROS_INFO("Cannot read %s.", cobotta_common::TEMP_PARAMS_PATH);
+  }
+  catch (std::exception& e)
+  {
+    ROS_WARN("Cannot parse 'pulse_offset' in %s.", cobotta_common::TEMP_PARAMS_PATH);
+  }
+
+  pulse_offset_.resize(CONTROL_JOINT_MAX);
+  for (auto& i : pulse_offset_)
+  {
+    i = 0;
+  }
+  return false;
+}
+
 bool DensoCobottaHW::setServoUpdateData()
 {
   SRV_COMM_SEND send_data;
@@ -194,13 +193,14 @@ bool DensoCobottaHW::setServoUpdateData()
     if (info.result == 0x0F408101)
     {
       // The current number of commands in buffer is 11.
-      // To avoid buffer overflow, sleep 8 msec
+      // To avoid buffer overflow, sleep short time
       ros::Duration(cobotta_common::COMMAND_SHORT_BREAK).sleep();
     }
     else if (info.result == 0x84400502)
     {
       // buffer full
-      ROS_WARN("Command buffer overflow...");
+      // To avoid buffer overflow, sleep long time
+      ROS_WARN("Command buffer full...");
       ros::Duration(cobotta_common::COMMAND_LONG_BREAK).sleep();
     }
   }
@@ -222,7 +222,7 @@ bool DensoCobottaHW::getEncoderData()
   }
   catch (const CobottaException& e)
   {
-    ROS_ERROR_STREAM(e.what());
+    Message::putRosConsole(nullptr, e);
     return false;
   }
   catch (const std::exception& e)
@@ -239,7 +239,7 @@ bool DensoCobottaHW::getEncoderData()
   return true;
 }
 
-void DensoCobottaHW::subRobotStateCB(const denso_cobotta_driver::RobotState& msg)
+void DensoCobottaHW::subRobotState(const denso_cobotta_driver::RobotState& msg)
 {
   switch (msg.state_code)
   {

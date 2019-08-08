@@ -43,7 +43,7 @@ struct MessageInfo
 class Message
 {
 public:
-  static const char* TAG;
+  static constexpr const char* TAG = "Message";
 
   Message(const uint32_t code);
   Message(const uint32_t main_code, const uint32_t sub_code);

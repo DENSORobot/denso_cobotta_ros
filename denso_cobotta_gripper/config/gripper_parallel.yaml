@@ -1,4 +1,4 @@
-max_soft_limit: 0.03
+max_soft_limit: 0.015
 min_soft_limit: 0.0
 max_velocity: 0.08
 max_acceleration: 0.8

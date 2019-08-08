@@ -43,13 +43,13 @@ int main(int argc, char** argv)
 
   switch (Gripper::convertGripperType(gripper_type))
   {
-    case GripperType::parallel:
+    case GripperType::Parallel:
       gripper = std::make_unique<GripperParallel>();
       break;
-    case GripperType::vacuum:
+    case GripperType::Vacuum:
       gripper = std::make_unique<GripperVacuum>();
       break;
-    case GripperType::none:
+    case GripperType::None:
       ROS_ERROR("denso_cobotta_gripper was launched although gripper_type is none.");
       return 1;
     default:

@@ -28,6 +28,7 @@
 // ROS
 #include <ros/ros.h>
 #include <actionlib/server/simple_action_server.h>
+#include <std_msgs/Bool.h>
 
 // COBOTTA
 #include <sys/ioctl.h>
@@ -41,9 +42,12 @@
 
 namespace denso_cobotta_gripper
 {
+
 class GripperBase
 {
 public:
+  static constexpr const char* TAG = "GripperBase";
+
   GripperBase();
   virtual ~GripperBase() = default;
   virtual bool read(void) = 0;
@@ -52,15 +56,15 @@ public:
   virtual bool initialize(ros::NodeHandle& nh);
 
   void checkMotorState(void);
-  bool isMotorOn(void);
-  void setMotorOn(bool);
+  bool isMotorOn(void) const;
+  bool isGraspState() const;
   int getFd() const;
 
   static void sendStayHere(int fd);
 
 protected:
   bool openDeviceFile(void);
-  bool verifyGripperType(std::string gripper_type);
+  bool verifyGripperType(const std::string& gripper_str);
   bool loadConfigParams(ros::NodeHandle& nh);
   bool initSubscribers(ros::NodeHandle& nh);
 
@@ -68,20 +72,24 @@ protected:
   virtual bool subscribe(void) = 0;
 
   // Subscriber callback functions.
-  void subRobotStateCB(const denso_cobotta_driver::RobotState& msg);
+  void subRobotState(const denso_cobotta_driver::RobotState& msg);
+  void subGraspState(const std_msgs::Bool::ConstPtr& msg);
 
   bool initCurPos(void);
   bool isBusy(void);
-  bool getEncoderData(void);
-  bool setGripperCommand(void);
+  bool recvEncoderData(void);
+  bool calcGripperCommand(void);
   bool stopMove(void);
-  bool setServoUpdateData(void);
+  bool sendServoUpdateData(void);
 
   int fd_;
   enum denso_cobotta_lib::cobotta::GripperType gripper_type_;
   std::mutex move_lock_;
   bool motor_on_;
   bool moving_;
+  bool grasp_state_;
+
+  void setMotorOn(bool);
 
   // Control parameters.
   double current_cmd_position_;
@@ -106,8 +114,8 @@ protected:
 
   // Subscribers.
   ros::Subscriber sub_robot_state_;
+  ros::Subscriber sub_grasp_state_;
 };
 
 }  // namespace denso_cobotta_gripper
-
 #endif

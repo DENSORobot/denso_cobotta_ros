@@ -1,6 +1,6 @@
 cobotta:
   joint_state_controller:
-    type: joint_state_controller/JointStateController
+    type: "joint_state_controller/JointStateController"
     publish_rate: 125  
 
   arm_controller:

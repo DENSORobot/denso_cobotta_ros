@@ -15,7 +15,6 @@ find_package(catkin REQUIRED COMPONENTS
 
 add_service_files(
    FILES
-   ArmPosition.srv
    SetMotorState.srv
    GetMotorState.srv
    ClearError.srv
@@ -24,6 +23,7 @@ add_service_files(
    SetBrakeState.srv
    GetBrakeState.srv
    SetLEDState.srv
+   ExecCalset.srv
 )
 
 add_message_files(

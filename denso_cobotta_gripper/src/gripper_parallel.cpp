@@ -20,15 +20,12 @@
 
 namespace denso_cobotta_gripper
 {
-using namespace denso_cobotta_gripper;
 using namespace denso_cobotta_lib::cobotta;
-
-const char* GripperParallel::TAG = "GripperParallel";
 
 GripperParallel::GripperParallel()
 {
   ROS_INFO("GripperParallel loading...");
-  gripper_type_ = GripperType::parallel;
+  gripper_type_ = GripperType::Parallel;
 }
 
 bool GripperParallel::initialize(ros::NodeHandle& nh)
@@ -55,8 +52,8 @@ bool GripperParallel::initialize(ros::NodeHandle& nh)
   }
 
   start_position_ = current_position_;
-  current_target_position_ = start_position_;
-  current_cmd_position_ = start_position_;
+  current_target_position_ = current_position_;
+  current_cmd_position_ = current_position_;
   current_cmd_velocity_ = 0.0;
   current_speed_percentage_ = 0.0;
   moving_ = false;
@@ -66,22 +63,23 @@ bool GripperParallel::initialize(ros::NodeHandle& nh)
 
 bool GripperParallel::read()
 {
-  if (!GripperBase::getEncoderData())
+  if (!GripperBase::recvEncoderData())
   {
     return false;
   }
-  publish();
+  this->publish();
+
   return true;
 }
 
 bool GripperParallel::write()
 {
-  return GripperParallel::setServoUpdateData();
+  return GripperParallel::sendServoUpdateData();
 }
 
 bool GripperParallel::update()
 {
-  return GripperBase::setGripperCommand();
+  return GripperBase::calcGripperCommand();
 }
 
 bool GripperParallel::publish()
@@ -100,14 +98,14 @@ bool GripperParallel::publish()
 bool GripperParallel::initActionServers(ros::NodeHandle& nh)
 {
   as_gripper_move_ = std::make_shared<actionlib::SimpleActionServer<GripperMoveAction> >(
-      nh, "gripper_move", std::bind(&GripperParallel::gripperMoveActionCB, this, std::placeholders::_1), false);
-  as_gripper_move_->registerPreemptCallback(std::bind(&GripperParallel::cancelCB, this));
+      nh, "gripper_move", std::bind(&GripperParallel::gripperMoveActionGoal, this, std::placeholders::_1), false);
+  as_gripper_move_->registerPreemptCallback(std::bind(&GripperParallel::actionCancel, this));
   as_gripper_move_->start();
 
   as_gripper_cmd_ = std::make_shared<actionlib::SimpleActionServer<control_msgs::GripperCommandAction> >(
-      nh, "gripper_action", std::bind(&GripperParallel::gripperCommandActionGoalCB, this, std::placeholders::_1),
+      nh, "gripper_action", std::bind(&GripperParallel::gripperCommandActionGoal, this, std::placeholders::_1),
       false);
-  as_gripper_cmd_->registerPreemptCallback(std::bind(&GripperParallel::cancelCB, this));
+  as_gripper_cmd_->registerPreemptCallback(std::bind(&GripperParallel::actionCancel, this));
   as_gripper_cmd_->start();
 
   return true;
@@ -144,46 +142,61 @@ bool GripperParallel::initGripperMove(const double& target_position, const doubl
     current_cmd_position_ = start_position_;
     current_speed_percentage_ = speed_percentage;
     current_effort_ = effort;
-    current_target_position_ = target_position;
+    /*
+     * XXX: As we use mimic joint, mutiply by 2 to get the intended width.
+     */
+    current_target_position_ = target_position * 2;
     moving_ = true;
   }
 
   return true;
 }
 
-bool GripperParallel::gripperMoveActionCB(const GripperMoveGoalConstPtr& goal)
+bool GripperParallel::gripperMoveActionGoal(const GripperMoveGoalConstPtr& goal)
 {
+  ROS_DEBUG("gripperMoveActionGoal: target_position=%lf effort=%f speed=%f",
+            goal->target_position, goal->effort, goal->speed);
+
   if (!GripperBase::isMotorOn())
   {
+    /* Turn motor power ON to execute the command. */
     Message::putRosConsole(TAG, 0x81400014);
     as_gripper_move_->setAborted();
     return false;
   }
 
+  double target_position = goal->target_position;
+  double effort = goal->effort;
+  double speed = goal->speed;
+
   GripperMoveResult result;
-  bool success = initGripperMove(goal->target_position, goal->speed, goal->effort);
+  bool success = initGripperMove(target_position, speed, effort);
   if (!success)
   {
     as_gripper_move_->setAborted();
     return false;
   }
 
-  ros::Rate rate(1.0 / cobotta_common::COMMAND_CYCLE);
+  ros::Rate rate(1.0 / cobotta_common::SERVO_PERIOD);
   while (moving_)
   {
     // Wait until move is complete.
+    this->gripperMoveActionFeedback();
     rate.sleep();
   }
+  this->gripperMoveActionFeedback();
 
-  // set the action state to succeeded
-  if (as_gripper_move_->isActive())
-  {
-    result.success = success;
-    as_gripper_move_->setSucceeded(result);
-  }
-  else if (as_gripper_move_->isPreemptRequested())
+  // set the action state
+  if (as_gripper_move_->isPreemptRequested())
   {
     result.success = false;
+    as_gripper_move_->setPreempted(result);
+    return false;
+  }
+  else if (as_gripper_move_->isActive())
+  {
+    result.success = true;
+    as_gripper_move_->setSucceeded(result);
   }
   else
   {
@@ -191,20 +204,39 @@ bool GripperParallel::gripperMoveActionCB(const GripperMoveGoalConstPtr& goal)
     return false;
   }
 
-  return success;
+  return true;
 }
 
-void GripperParallel::cancelCB()
+void GripperParallel::actionCancel()
 {
   GripperBase::stopMove();
   return;
 }
 
-void GripperParallel::actionFeedback()
+void GripperParallel::gripperMoveActionFeedback()
 {
+  /* gripper_move */
   GripperMoveFeedback feedback;
-  feedback.current_position = current_position_;
+  // As we use mimic joint, mutiply by 0.5 to get the intended width.
+  feedback.position = current_position_ * 0.5;
+  feedback.stalled = this->isGraspState();
+  feedback.reached_goal = !moving_;
   as_gripper_move_->publishFeedback(feedback);
+
+  return;
+}
+
+void GripperParallel::gripperCommandActionFeedback()
+{
+  /* gripper command */
+  control_msgs::GripperCommandActionFeedback feedback;
+  feedback.feedback.effort = 0;
+  // As we use mimic joint, mutiply by 0.5 to get the intended width.
+  feedback.feedback.position = current_position_ * 0.5;
+  feedback.feedback.stalled = this->isGraspState();
+  feedback.feedback.reached_goal = !moving_;
+  as_gripper_cmd_->publishFeedback(feedback.feedback);
+
   return;
 }
 
@@ -228,7 +260,7 @@ void GripperParallel::sendStayHere(int fd)
   }
 }
 
-bool GripperParallel::setServoUpdateData()
+bool GripperParallel::sendServoUpdateData()
 {
   // ArmNo: 0 => J1 to J6.
   // ArmNo: 1 => Gripper
@@ -267,10 +299,14 @@ bool GripperParallel::setServoUpdateData()
   return true;
 }
 
-bool GripperParallel::gripperCommandActionGoalCB(const control_msgs::GripperCommandGoalConstPtr& goal)
+bool GripperParallel::gripperCommandActionGoal(const control_msgs::GripperCommandGoalConstPtr& goal)
 {
+  ROS_DEBUG("gripperCommandActionGoal: target_position=%lf max_effort=%lf",
+            goal->command.position, goal->command.max_effort);
+
   if (!GripperBase::isMotorOn())
   {
+    /* Turn motor power ON to execute the command. */
     Message::putRosConsole(TAG, 0x81400014);
     as_gripper_cmd_->setAborted();
     return false;
@@ -280,6 +316,16 @@ bool GripperParallel::gripperCommandActionGoalCB(const control_msgs::GripperComm
   double max_effort = goal->command.max_effort;
   double speed_rate = 20.0;
 
+  /*
+   * XXX: MoveIt! send us effort is zero.
+   * Round of minimum effort anyway.
+   */
+  if (max_effort < this->min_effort_) {
+    max_effort = this->min_effort_;
+    ROS_WARN("gripperCommandActionGoal: Round of effort %f because input value is smaller than minimum.",
+             max_effort);
+  }
+
   bool success = initGripperMove(target_position, speed_rate, max_effort);
   // set the action state to succeeded
   if (!success)
@@ -288,16 +334,27 @@ bool GripperParallel::gripperCommandActionGoalCB(const control_msgs::GripperComm
     return false;
   }
 
-  ros::Rate rate(1.0 / cobotta_common::COMMAND_CYCLE);
+  ros::Rate rate(1.0 / cobotta_common::SERVO_PERIOD);
   while (moving_)
   {
     // Wait until move is complete.
+    this->gripperCommandActionFeedback();
     rate.sleep();
   }
+  this->gripperCommandActionFeedback();
 
   control_msgs::GripperCommandResult result;
-  // set the action state to succeeded
-  if (as_gripper_cmd_->isActive())
+  result.effort = 0;
+  result.position = this->current_position_;
+  result.stalled = this->grasp_state_;
+  // set the action state
+  if (as_gripper_cmd_->isPreemptRequested())
+  {
+    result.reached_goal = false;
+    as_gripper_cmd_->setPreempted(result);
+    return false;
+  }
+  else if (as_gripper_cmd_->isActive())
   {
     result.reached_goal = true;
     as_gripper_cmd_->setSucceeded(result);

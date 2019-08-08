@@ -32,8 +32,6 @@ namespace denso_cobotta_lib
 {
 namespace cobotta
 {
-const char* Motor::TAG = "Motor";
-
 /**
  * Constructs a Motor object.
  * @param parent cobotta object
@@ -72,8 +70,8 @@ bool Motor::update(const enum MotorState state)
  */
 bool Motor::shouldStop()
 {
-  if ((this->getState() == MotorState::SLOWDOWNSTOP)
-      || (this->getState() == MotorState::OFF))
+  if ((this->getState() == MotorState::SlowDownStop)
+      || (this->getState() == MotorState::Off))
     return false;
 
   /* SafetyMCU state */
@@ -92,7 +90,7 @@ bool Motor::shouldStop()
  */
 bool Motor::isRunning(void) const
 {
-  if (this->getState() == MotorState::ON)
+  if (this->getState() == MotorState::On)
     return true;
 
   return false;
@@ -157,7 +155,7 @@ bool Motor::canStart(void) const
 void Motor::start(void) throw(CobottaException, std::runtime_error)
 {
   /* check */
-  if (this->getState() != MotorState::OFF)
+  if (this->getState() != MotorState::Off)
   {
     return;
   }
@@ -171,7 +169,7 @@ void Motor::start(void) throw(CobottaException, std::runtime_error)
   ROS_INFO("%s: Starting...", TAG);
   this->writeHwOn(this->getParent()->getFd());
   /* sync */
-  while (this->getState() != MotorState::ON)
+  while (this->getState() != MotorState::On)
   {
     if (this->getParent()->getDriver()->isFatalError()
         || this->getParent()->getDriver()->isError())
@@ -195,8 +193,8 @@ void Motor::stop(void) throw(CobottaException, std::runtime_error)
    * check
    *   except for MotorState::MOTOR_OFF to stop() brake::lock on error.
    */
-  if (this->getState() == MotorState::OFF
-      || this->getState() == MotorState::SLOWDOWNSTOP)
+  if (this->getState() == MotorState::Off
+      || this->getState() == MotorState::SlowDownStop)
   {
     return;
   }
@@ -204,7 +202,7 @@ void Motor::stop(void) throw(CobottaException, std::runtime_error)
   ROS_INFO("%s: Stopping...", TAG);
   this->writeHwOff(this->getParent()->getFd());
   /* sync */
-  while (this->getState() == MotorState::OFF)
+  while (this->getState() == MotorState::Off)
   {
     ros::Duration(cobotta_common::getPeriod()).sleep();
   }

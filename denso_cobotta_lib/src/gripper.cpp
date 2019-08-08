@@ -20,6 +20,7 @@
 #include <cstring>
 #include <memory>
 #include <cerrno>
+#include <algorithm>
 
 #include "denso_cobotta_lib/cobotta_ioctl.h"
 #include "denso_cobotta_lib/cobotta_exception.h"
@@ -30,8 +31,6 @@ namespace denso_cobotta_lib
 {
 namespace cobotta
 {
-const char* Gripper::TAG = "Gripper";
-
 /**
  * @brief Constructs a Gripper object.
  *
@@ -87,21 +86,21 @@ long Gripper::readHwGripperState(int fd) throw(CobottaException, std::runtime_er
  * @param string
  * @return
  */
-GripperType Gripper::convertGripperType(std::string gripper_type)
+GripperType Gripper::convertGripperType(const std::string& gripper_type)
 {
-  if (gripper_type == GRIPPER_STRING(parallel))
+  if (gripper_type == "parallel")
   {
-    return GripperType::parallel;
+    return GripperType::Parallel;
   }
-  else if (gripper_type == GRIPPER_STRING(vacuum))
+  else if (gripper_type == "vacuum")
   {
-    return GripperType::vacuum;
+    return GripperType::Vacuum;
   }
-  else if (gripper_type == GRIPPER_STRING(none))
+  else if (gripper_type == "none")
   {
-    return GripperType::none;
+    return GripperType::None;
   }
-  return GripperType::undefined;
+  return GripperType::Undefined;
 }
 
 std::shared_ptr<Cobotta> Gripper::getParent() const

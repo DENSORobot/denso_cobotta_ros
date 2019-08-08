@@ -27,8 +27,6 @@ namespace denso_cobotta_lib
 {
 namespace cobotta
 {
-const char* Brake::TAG = "Brake";
-
 /**
  * Constructs brake object
  * @param parent

@@ -29,8 +29,6 @@ namespace denso_cobotta_lib
 {
 namespace cobotta
 {
-const char* MiniIo::TAG = "MiniIo";
-
 /**
  * Constructs a MiniIo object.
  * @param parent cobotta object

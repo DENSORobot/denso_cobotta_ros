@@ -27,8 +27,6 @@ namespace denso_cobotta_lib
 {
 namespace cobotta
 {
-const char* SafetyMcu::TAG = "SafetyMcu";
-
 /**
  * Constructs a SafetyMcu object.
  * @param parent cobotta object
@@ -173,7 +171,7 @@ void SafetyMcu::moveToStandby() throw(CobottaException, std::runtime_error)
     // It can not execute in the current state.
     throw CobottaException(0x0F20FFFF);
   }
-  if (this->getState() == SafetyMcuState::STANDBY)
+  if (this->getState() == SafetyMcuState::StandBy)
     return;
   if (this->isNormal())
   {
@@ -197,11 +195,11 @@ void SafetyMcu::moveToStandby() throw(CobottaException, std::runtime_error)
     /* moving time: 100ms */
     ros::Duration(0.1).sleep();
   }
-  this->writeHwState(this->getParent()->getFd(), SafetyMcuCommand::STANDBY);
+  this->writeHwState(this->getParent()->getFd(), SafetyMcuCommand::StandBy);
   /* moving time: 500ms */
   ros::Duration(0.5).sleep();
   /* sync */
-  while (this->getState() != SafetyMcuState::STANDBY)
+  while (this->getState() != SafetyMcuState::StandBy)
   {
     if (this->isEmergencyButton() || this->isProtectiveButton())
       throw CobottaException(0x83201F83); /* Operation failed */
@@ -229,11 +227,11 @@ void SafetyMcu::moveToNormal() throw(CobottaException, std::runtime_error)
   }
 
   /* @normal */
-  if (this->getState() == SafetyMcuState::NORMAL)
+  if (this->getState() == SafetyMcuState::Normal)
     return;
 
   /* safe state -> standby */
-  if (this->getState() == SafetyMcuState::SAFE_STATE)
+  if (this->getState() == SafetyMcuState::SafeState)
   {
     this->moveToStandby();
   }
@@ -242,11 +240,11 @@ void SafetyMcu::moveToNormal() throw(CobottaException, std::runtime_error)
   /* moving time: 500ms */
   ros::Duration(0.5).sleep();
   /* move */
-  this->writeHwState(this->getParent()->getFd(), SafetyMcuCommand::NORMAL);
+  this->writeHwState(this->getParent()->getFd(), SafetyMcuCommand::Normal);
   /* moving time: 24ms */
   ros::Duration(0.024).sleep();
   /* sync */
-  while (this->getState() != SafetyMcuState::NORMAL)
+  while (this->getState() != SafetyMcuState::Normal)
   {
     if (this->isEmergencyButton() || this->isProtectiveButton())
       throw CobottaException(0x83201F83); /* Operation failed */
@@ -271,11 +269,11 @@ void SafetyMcu::forceMoveToStandby() throw(CobottaException, std::runtime_error)
   /* moving time: 100ms */
   ros::Duration(0.1).sleep();
 
-  this->writeHwState(this->getParent()->getFd(), SafetyMcuCommand::STANDBY);
+  this->writeHwState(this->getParent()->getFd(), SafetyMcuCommand::StandBy);
   /* moving time: 500ms */
   ros::Duration(0.5).sleep();
   /* sync */
-  while (this->getState() != SafetyMcuState::STANDBY)
+  while (this->getState() != SafetyMcuState::StandBy)
   {
     if (this->isEmergencyButton() || this->isProtectiveButton())
       throw CobottaException(0x83201F83); /* Operation failed */
@@ -364,13 +362,13 @@ struct StateCode SafetyMcu::readHwQueue(const int fd) throw(CobottaException, st
 
 bool SafetyMcu::isNormal() const
 {
-  if (this->getState() == SafetyMcuState::NORMAL)
+  if (this->getState() == SafetyMcuState::Normal)
     return true;
   return false;
 }
 bool SafetyMcu::isSafeState() const
 {
-  if (this->getState() == SafetyMcuState::SAFE_STATE)
+  if (this->getState() == SafetyMcuState::SafeState)
     return true;
   return false;
 }

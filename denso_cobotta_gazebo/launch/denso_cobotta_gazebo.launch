@@ -1,0 +1,48 @@
+<launch>
+  <!-- "gripper type": Select from none/parallel/vacuum. --> 
+  <arg name="gripper_type" default="none"/>
+  <!-- "paused": Determine starting Gazebo in a paused state or not. -->
+  <arg name="paused" default="false"/>
+  <!-- "use_sim_time": Ask ROS nodes to get the simulation time.-->
+  <arg name="use_sim_time" default="true"/>
+  <!-- "gui": Launch with user interface.-->
+  <arg name="gui"  default="true"/>
+  <!-- "recording": Enable gazebo state log recording.-->
+  <arg name="recording"  default="false"/>
+  <!-- "debug": Start gzserver in debug mode.-->
+  <arg name="debug"  default="false"/>
+  <!-- "verbose": Run gzserver and gzclient with verbose, printing a lot of info.-->
+  <arg name="verbose"  default="false"/>
+  
+  <!-- launch simulated world -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" default="$(find denso_cobotta_gazebo)/worlds/cobotta.world"/>
+    <arg name="paused" value="$(arg paused)"/>
+    <arg name="use_sim_time" value="$(arg use_sim_time)"/>
+    <arg name="gui" value="$(arg gui)"/>
+    <arg name="recording" value="$(arg recording)"/>
+    <arg name="debug" value="$(arg debug)"/>
+    <arg name="verbose" value="$(arg verbose)"/>
+  </include>
+
+  <!-- By default we do not overwrite the URDF. Change the following to true to change the default behavior -->
+  <arg name="load_robot_description" default="true"/>
+  <!-- The name of the parameter under which the URDF is loaded -->
+  <arg name="robot_description" default="robot_description"/>
+  <!-- Load universal robot description format (URDF) -->
+  <param if="$(arg load_robot_description)" name="$(arg robot_description)" command="$(find xacro)/xacro --inorder $(find denso_cobotta_descriptions)/cobotta_description/cobotta.urdf.xacro gripper_type:=$(arg gripper_type) "/>
+
+  <!-- push robot_description to factory and spawn robot in gazebo -->
+  <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model cobotta " respawn="false" output="screen" />
+
+  <!-- Load joint controller configurations to parameter server -->
+  <rosparam file="$(find denso_cobotta_descriptions)/cobotta_description/denso_cobotta_control.yaml" command="load" />
+  <!-- load the controllers -->
+  <node name="controller_spawner" pkg="controller_manager" ns="/cobotta" type="spawner" args="joint_state_controller arm_controller" respawn="false" output="screen"/>
+
+  <!-- Load joint controller configurations for gazebo to parameter server -->
+  <!--rosparam file="$(find denso_cobotta_descriptions)/cobotta_description/gazebo_cobotta_control.yaml" command="load"/-->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="false" output="screen" required="true">
+    <remap from="/joint_states" to="/cobotta/joint_states" />
+  </node>
+</launch>

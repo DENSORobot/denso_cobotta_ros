@@ -24,12 +24,10 @@ namespace denso_cobotta_gripper
 {
 using namespace denso_cobotta_lib::cobotta;
 
-const char* GripperVacuum::TAG = "GripperVacuum";
-
 GripperVacuum::GripperVacuum()
 {
   ROS_INFO("GripperVacuum loading...");
-  gripper_type_ = GripperType::vacuum;
+  gripper_type_ = GripperType::Vacuum;
 }
 
 bool GripperVacuum::initialize(ros::NodeHandle& nh)
@@ -53,8 +51,8 @@ bool GripperVacuum::initialize(ros::NodeHandle& nh)
   }
 
   start_position_ = current_position_;
-  current_target_position_ = start_position_;
-  current_cmd_position_ = start_position_;
+  current_target_position_ = current_position_;
+  current_cmd_position_ = current_position_;
   current_cmd_velocity_ = 0.0;
   current_speed_percentage_ = 0.0;
   moving_ = false;
@@ -64,7 +62,12 @@ bool GripperVacuum::initialize(ros::NodeHandle& nh)
 
 bool GripperVacuum::read()
 {
-  return GripperBase::getEncoderData();
+  if (!GripperBase::recvEncoderData())
+  {
+    return false;
+  }
+
+  return true;
 }
 
 bool GripperVacuum::write()
@@ -107,7 +110,7 @@ bool GripperVacuum::write()
 
 bool GripperVacuum::update()
 {
-  GripperBase::setGripperCommand();
+  GripperBase::calcGripperCommand();
 
   return true;
 }
@@ -115,14 +118,19 @@ bool GripperVacuum::update()
 bool GripperVacuum::initActionServers(ros::NodeHandle& nh)
 {
   as_vacuum_move_ = std::make_shared<actionlib::SimpleActionServer<VacuumMoveAction> >(
-      nh, "vacuum_move", std::bind(&GripperVacuum::vacuumMoveActionCB, this, std::placeholders::_1), false);
-  as_vacuum_move_->registerPreemptCallback(std::bind(&GripperVacuum::cancelCB, this));
+      nh, "vacuum_move",
+      std::bind(&GripperVacuum::vacuumMoveActionGoal, this, std::placeholders::_1), false);
+  as_vacuum_move_->registerPreemptCallback(std::bind(&GripperVacuum::actionCancel, this));
   as_vacuum_move_->start();
 
   return true;
 }
 
-bool GripperVacuum::initGripperMove(const double& target_position, const double& speed_percentage, const double& effort)
+/**
+ * @param target_position blow:minimum value suction:maximum value
+ * @param speed_percentage speed_percentage is the same as power_percentage
+ */
+bool GripperVacuum::initGripperMove(const double& target_position, const double& speed_percentage)
 {
   // For vacuum gripper, we check only speed percentage.
   if ((speed_percentage < min_speed_percentage_) || (speed_percentage > max_speed_percentage_))
@@ -141,7 +149,7 @@ bool GripperVacuum::initGripperMove(const double& target_position, const double&
     std::lock_guard<std::mutex> gripper_lock(move_lock_);
     start_position_ = current_cmd_position_;
     current_speed_percentage_ = speed_percentage;
-    current_effort_ = effort;
+    current_effort_ = 0.0;
     current_target_position_ = target_position;
     moving_ = true;
   }
@@ -166,7 +174,7 @@ bool GripperVacuum::updateVacuumDetectParameter(double speed_percentage)
   }
   catch (const CobottaException& e)
   {
-    Message::putRosConsole(nullptr, e);
+    Message::putRosConsole(TAG, e);
     return false;
   }
   catch (const std::exception& e)
@@ -177,8 +185,11 @@ bool GripperVacuum::updateVacuumDetectParameter(double speed_percentage)
   return true;
 }
 
-bool GripperVacuum::vacuumMoveActionCB(const denso_cobotta_gripper::VacuumMoveGoalConstPtr& goal)
+bool GripperVacuum::vacuumMoveActionGoal(const denso_cobotta_gripper::VacuumMoveGoalConstPtr& goal)
 {
+  ROS_DEBUG("vacuumMoveActionGoal: direction=%d power_percentage=%lf",
+            goal->direction, goal->power_percentage);
+
   if (!GripperBase::isMotorOn())
   {
     Message::putRosConsole(TAG, 0x81400014);
@@ -192,22 +203,23 @@ bool GripperVacuum::vacuumMoveActionCB(const denso_cobotta_gripper::VacuumMoveGo
   // When the power percentage is 0, request stop.
   if (std::abs(goal->power_percentage) <= std::numeric_limits<double>::epsilon())
   {
-    direction = VacuumMoveDirection::stop;
+    direction = VacuumMoveDirection::Stop;
   }
 
   double target_position;
-  if (direction == VacuumMoveDirection::blow)
+  if (direction == VacuumMoveDirection::Blow)
   {
     target_position = std::numeric_limits<double>::lowest();
   }
-  else if (direction == VacuumMoveDirection::suction)
+  else if (direction == VacuumMoveDirection::Suction)
   {
     target_position = std::numeric_limits<double>::max();
   }
-  else if (direction == VacuumMoveDirection::stop)
+  else if (direction == VacuumMoveDirection::Stop)
   {
     GripperBase::stopMove();
-    as_vacuum_move_->setSucceeded();
+    result.success = true;
+    as_vacuum_move_->setSucceeded(result);
     return true;
   }
   else
@@ -217,28 +229,32 @@ bool GripperVacuum::vacuumMoveActionCB(const denso_cobotta_gripper::VacuumMoveGo
     return false;
   }
 
-  bool success = initGripperMove(target_position, goal->power_percentage, 0);
+  bool success = initGripperMove(target_position, goal->power_percentage);
   if (!success)
   {
     as_vacuum_move_->setAborted();
     return false;
   }
 
-  ros::Rate rate(1.0 / cobotta_common::COMMAND_CYCLE);
+  ros::Rate rate(1.0 / cobotta_common::SERVO_PERIOD);
   while (moving_)
   {
     // Wait until move is complete.
+    this->actionFeedback();
     rate.sleep();
   }
+  this->actionFeedback();
 
-  if (as_vacuum_move_->isActive())
-  {
-    result.success = success;
-    as_vacuum_move_->setSucceeded(result);
-  }
-  else if (as_vacuum_move_->isPreemptRequested())
+  if (as_vacuum_move_->isPreemptRequested())
   {
     result.success = false;
+    as_vacuum_move_->setPreempted(result);
+    return false;
+  }
+  else if (as_vacuum_move_->isActive())
+  {
+    result.success = true;
+    as_vacuum_move_->setSucceeded(result);
   }
   else
   {
@@ -248,9 +264,23 @@ bool GripperVacuum::vacuumMoveActionCB(const denso_cobotta_gripper::VacuumMoveGo
   return true;
 }
 
-void GripperVacuum::cancelCB()
+void GripperVacuum::actionCancel()
 {
   GripperBase::stopMove();
+  return;
+}
+
+/*
+ * The pressure of feedback is not implemented.
+ * It needs Linux driver fix.
+ */
+void GripperVacuum::actionFeedback()
+{
+  VacuumMoveFeedback feedback;
+  feedback.pressure = 0; // Not implemented.
+  feedback.stalled = this->isGraspState();
+  as_vacuum_move_->publishFeedback(feedback);
+
   return;
 }
 
@@ -265,3 +295,4 @@ bool GripperVacuum::subscribe()
 }
 
 } /* namespace denso_cobotta_gripper */
+

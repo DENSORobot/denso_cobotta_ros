@@ -69,12 +69,13 @@ public:
   int getFd() const;
 
   // Subscriber callback functions.
-  void subRobotStateCB(const denso_cobotta_driver::RobotState& msg);
+  void subRobotState(const denso_cobotta_driver::RobotState& msg);
 
   // Subscriber
   ros::Subscriber sub_robot_state_;
 
 private:
+  bool loadCalsetData();
   bool setServoUpdateData();
   bool getEncoderData();
 

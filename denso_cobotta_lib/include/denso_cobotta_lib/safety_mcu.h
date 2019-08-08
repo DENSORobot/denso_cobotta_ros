@@ -35,15 +35,15 @@ class Cobotta;
 
 enum class SafetyMcuState : int
 {
-  STANDBY = 0,
-  NORMAL = 1,
-  SAFE_STATE = 2,
+  StandBy = 0,
+  Normal = 1,
+  SafeState = 2,
 };
 
 enum class SafetyMcuCommand : uint32_t
 {
-  STANDBY = 0, /** safe state -> standby */
-  NORMAL = 2, /** standby -> normal */
+  StandBy = 0, /** safe state -> standby */
+  Normal = 2, /** standby -> normal */
 };
 
 /**
@@ -55,7 +55,7 @@ enum class SafetyMcuCommand : uint32_t
 class SafetyMcu
 {
 public:
-  static const char* TAG;
+  static constexpr const char* TAG = "SafetyMcu";
 
   SafetyMcu(const std::shared_ptr<Cobotta>& parent);
   SafetyMcu(const std::shared_ptr<Cobotta>& parent,
@@ -92,7 +92,7 @@ private:
   std::shared_ptr<Cobotta> getParent() const;
 
   std::shared_ptr<Cobotta> parent_ = nullptr;
-  enum SafetyMcuState state_ = SafetyMcuState::SAFE_STATE;
+  enum SafetyMcuState state_ = SafetyMcuState::SafeState;
   int state_queue_ = 0;
   bool fatal_error_ = false;
   bool error_ = false;

@@ -1,5 +1,43 @@
 # CHANGELOG
 
+## [1.2.2-dev] -- 2019-07-09
+### Added
+- [Testing] Gazebo
+  * Supported arm simulation with gazebo.
+  * Gripper simulation is currently not supported.
+  * PID gains are currently not tuned.
+
+    Before starting gazebo simulation, **gazebo_ros_control** package is required.
+
+  * Add `sim` argument to denso_cobotta_bringup.launch for gazebo simulation.
+	```sh
+	$ roslaunch denso_cobotta_bringup denso_cobotta_bringup.launch sim:=true gripper_type:=none
+	```
+
+  * [Gazebo system requirements: Intel i5 and Nvidia card.](http://gazebosim.org/tutorials?tut=guided_b1&cat=)
+
+	COBOTTA has Atom CPU and no graphics card,
+	so it doesn't meet the requirements of Gazebo.
+	Do Gazebo simulation on your PC.
+
+### Changed
+- cobotta_description
+  * Changed for Gazebo simulation.
+- Parallel gripper
+  * Fix gripper_move and gripper_action for RViz.
+
+	Changed parameter 'target_position' to set half width '0 - 0.015'
+	as we use mimic joint.
+
+  * Fix cancel action.
+  * Fix feedback action.
+- Vacuum gripper
+  * Fix cancel action.
+  * Fix feedback action.
+- scripts/packing_pose.py
+  * Supported Gazebo simulation.
+  * Changed the library moveit-python to moveit-commander.
+
 ## [1.2.1] -- 2019-07-03
 ### Added
 - CALSET

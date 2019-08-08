@@ -26,7 +26,30 @@ using namespace denso_cobotta_lib::cobotta;
 
 GripperBase::GripperBase()
 {
-  gripper_type_ = GripperType::undefined;
+  gripper_type_ = GripperType::Undefined;
+
+  current_cmd_position_ = 0.0;
+  current_cmd_velocity_ = 0.0;
+  current_target_position_ = 0.0;
+  current_speed_percentage_ = 0.0;
+  current_effort_ = 0.0;
+  start_position_ = 0.0;
+
+  current_position_ = 0.0;
+  max_soft_limit_ = 0.0;
+  min_soft_limit_ = 0.0;
+  max_velocity_ = 0.0;
+  max_acceleration_ = 0.0;
+  max_speed_percentage_ = 0.0;
+  min_speed_percentage_ = 0.0;
+  max_effort_ = 0.0;
+  min_effort_ = 0.0;
+  coeff_outpos_to_pulse_ = 0.0;
+  coeff_effort_to_torque_ = 0.0;
+
+  fd_ = -1;
+  motor_on_ = false;
+  moving_ = false;
 }
 
 bool GripperBase::initialize(ros::NodeHandle& nh)
@@ -80,7 +103,7 @@ void GripperBase::checkMotorState(void)
   }
   catch (const CobottaException& e)
   {
-    Message::putRosConsole(nullptr, e);
+    Message::putRosConsole(TAG, e);
   }
   catch (const std::exception& e)
   {
@@ -93,48 +116,37 @@ bool GripperBase::openDeviceFile()
   int myerrno;
 
   errno = 0;
-  fd_ = open(cobotta_common::PATH_DEVFILE.c_str(), O_RDWR);
+  fd_ = open(cobotta_common::PATH_DEVFILE, O_RDWR);
   myerrno = errno;
   if (fd_ < 0)
   {
-    ROS_ERROR("open(%s): %s", cobotta_common::PATH_DEVFILE.c_str(), std::strerror(errno));
+    ROS_ERROR("open(%s): %s", cobotta_common::PATH_DEVFILE, std::strerror(myerrno));
     return false;
   }
 
   return true;
 }
 
-bool GripperBase::verifyGripperType(std::string gripper_str)
+bool GripperBase::verifyGripperType(const std::string& gripper_str)
 {
   try
   {
-    enum GripperType gripper_type = Gripper::convertGripperType(gripper_str);
+    int gripper_type = static_cast<int>(Gripper::convertGripperType(gripper_str));
     std::array<uint16_t, JOINT_MAX + 1> send_values = {};
     std::array<uint16_t, JOINT_MAX + 1> recv_values;
     Driver::writeHwAcyclicCommAll(fd_, GRIPPER_TYPE_ADDRESS, send_values, recv_values);
 
-    if ((recv_values[8] == 0) && (gripper_type == GripperType::none))
+    if (recv_values[8] != gripper_type)
     {
-      ROS_INFO("Gripper type is none.");
-    }
-    else if ((recv_values[8] == 1) && (gripper_type == GripperType::parallel))
-    {
-      ROS_INFO("Gripper type is parallel.");
-    }
-    else if ((recv_values[8] == 2) && (gripper_type == GripperType::vacuum))
-    {
-      ROS_INFO("Gripper type is vacuum.");
-    }
-    else
-    {
-      ROS_ERROR("Invalid the gripper type. H/W parameter is %d although the argument is %s.", recv_values[8],
-                gripper_str.c_str());
+      ROS_ERROR("Invalid the gripper type. H/W parameter is %d although the argument is %s(%d).",
+                recv_values[8], gripper_str.c_str(), gripper_type);
       return false;
     }
+    ROS_INFO("Gripper type is %s.", gripper_str.c_str());
   }
   catch (const CobottaException& e)
   {
-    Message::putRosConsole(nullptr, e);
+    Message::putRosConsole(TAG, e);
     return false;
   }
   catch (const std::exception& e)
@@ -212,7 +224,8 @@ bool GripperBase::loadConfigParams(ros::NodeHandle& nh)
 
 bool GripperBase::initSubscribers(ros::NodeHandle& nh)
 {
-  sub_robot_state_ = nh.subscribe("robot_state", 64, &GripperBase::subRobotStateCB, this);
+  sub_robot_state_ = nh.subscribe("robot_state", 64, &GripperBase::subRobotState, this);
+  sub_grasp_state_ = nh.subscribe("gripper_state", 1, &GripperBase::subGraspState, this);
   return true;
 }
 
@@ -233,85 +246,86 @@ bool GripperBase::stopMove(void)
   return true;
 }
 
-bool GripperBase::setGripperCommand(void)
+bool GripperBase::calcGripperCommand(void)
 {
-  if (move_lock_.try_lock())
+  if (!move_lock_.try_lock())
   {
-    const double max_cmd_vel = max_velocity_ * current_speed_percentage_ * 0.01;
-    const double direction = ((current_target_position_ - start_position_) >= 0.0) ? 1.0 : -1.0;
-    const double vel_delta_increment = max_acceleration_ * getPeriod().toSec();
+    return true;
+  }
+  const double max_cmd_vel = max_velocity_ * current_speed_percentage_ * 0.01;
+  const double direction = ((current_target_position_ - start_position_) >= 0.0) ? 1.0 : -1.0;
+  const double vel_delta_increment = max_acceleration_ * getPeriod().toSec();
 
-    // Set target velocity.
-    const double position_error = std::abs(current_target_position_ - current_cmd_position_);
-    const double slowdown_length = std::pow(current_cmd_velocity_, 2) * 0.5 / max_acceleration_;
-    double target_velocity;
-    if (position_error >= slowdown_length)
-    {
-      target_velocity = direction * max_cmd_vel;
-    }
-    else
-    {
-      target_velocity = direction * vel_delta_increment;
-    }
+  // Set target velocity.
+  const double position_error = std::abs(current_target_position_ - current_cmd_position_);
+  const double slowdown_length = std::pow(current_cmd_velocity_, 2) * 0.5 / max_acceleration_;
+  double target_velocity;
+  if (position_error > slowdown_length)
+  {
+    target_velocity = direction * max_cmd_vel;
+  }
+  else
+  {
+    target_velocity = direction * vel_delta_increment;
+  }
 
-    // Set command velocity.
+  // Set command velocity.
+  if (current_cmd_velocity_ < target_velocity)
+  {
+    current_cmd_velocity_ += vel_delta_increment;
+    if (current_cmd_velocity_ > target_velocity)
+    {
+      current_cmd_velocity_ = target_velocity;
+    }
+  }
+  else if (current_cmd_velocity_ > target_velocity)
+  {
+    current_cmd_velocity_ -= vel_delta_increment;
     if (current_cmd_velocity_ < target_velocity)
     {
-      current_cmd_velocity_ += vel_delta_increment;
-      if (current_cmd_velocity_ > target_velocity)
-      {
-        current_cmd_velocity_ = target_velocity;
-      }
+      current_cmd_velocity_ = target_velocity;
     }
-    else if (current_cmd_velocity_ > target_velocity)
-    {
-      current_cmd_velocity_ -= vel_delta_increment;
-      if (current_cmd_velocity_ < target_velocity)
-      {
-        current_cmd_velocity_ = target_velocity;
-      }
-    }
+  }
 
-    // Set command position.
-    // While accelerating or deaccelerating, adjust to fit trapezoid pattern. 
-    current_cmd_position_ += (current_cmd_velocity_ * getPeriod().toSec());
-    if (current_cmd_velocity_ != target_velocity)
+  // Set command position.
+  // While accelerating or deaccelerating, adjust to fit trapezoid pattern.
+  current_cmd_position_ += (current_cmd_velocity_ * getPeriod().toSec());
+  if (current_cmd_velocity_ != target_velocity)
+  {
+    if (current_cmd_velocity_ <= target_velocity)
     {
-      if (current_cmd_velocity_ <= target_velocity)
-      {
-        current_cmd_position_ -= vel_delta_increment * getPeriod().toSec() * 0.5;
-      }
-      else
-      {
-        current_cmd_position_ += vel_delta_increment * getPeriod().toSec() * 0.5;
-      }
-    }
-
-    if (((direction >= 0.0) && (current_cmd_position_ >= current_target_position_)) ||
-        ((direction < 0.0) && (current_cmd_position_ <= current_target_position_)))
-    {
-      // Reached the target position.
-      // Stop moving.
-      current_cmd_velocity_ = 0.0;
-      current_cmd_position_ = current_target_position_;
-      moving_ = false;
+      current_cmd_position_ -= vel_delta_increment * getPeriod().toSec() * 0.5;
     }
     else
     {
-      // Still not reach the target postion.
-      // Keep moving.
-      moving_ = true;
+      current_cmd_position_ += vel_delta_increment * getPeriod().toSec() * 0.5;
     }
-
-    move_lock_.unlock();
   }
+
+  if (((direction >= 0.0) && (current_cmd_position_ >= current_target_position_)) ||
+      ((direction < 0.0) && (current_cmd_position_ <= current_target_position_)))
+  {
+    // Reached the target position.
+    // Stop moving.
+    current_cmd_velocity_ = 0.0;
+    current_cmd_position_ = current_target_position_;
+    moving_ = false;
+  }
+  else
+  {
+    // Still not reach the target postion.
+    // Keep moving.
+    moving_ = true;
+  }
+
+  move_lock_.unlock();
 
   return true;
 }
 
 bool GripperBase::initCurPos(void)
 {
-  return this->getEncoderData();
+  return this->recvEncoderData();
 }
 
 /**
@@ -334,7 +348,7 @@ void GripperBase::sendStayHere(int fd)
   }
 }
 
-bool GripperBase::getEncoderData(void)
+bool GripperBase::recvEncoderData(void)
 {
   SRV_COMM_RECV recv_data{ 0 };
   try
@@ -343,7 +357,7 @@ bool GripperBase::getEncoderData(void)
   }
   catch (const CobottaException& e)
   {
-    ROS_ERROR_STREAM(e.what());
+    Message::putRosConsole(TAG, e);
     return false;
   }
   catch (const std::exception& e)
@@ -357,7 +371,7 @@ bool GripperBase::getEncoderData(void)
   return true;
 }
 
-void GripperBase::subRobotStateCB(const denso_cobotta_driver::RobotState& msg)
+void GripperBase::subRobotState(const denso_cobotta_driver::RobotState& msg)
 {
   switch (msg.state_code)
   {
@@ -374,15 +388,24 @@ void GripperBase::subRobotStateCB(const denso_cobotta_driver::RobotState& msg)
 }
 
 // @return true:on false:off
-bool GripperBase::isMotorOn(void)
+bool GripperBase::isMotorOn(void) const
 {
   return this->motor_on_;
 }
 
-// @return true:on false:off
 void GripperBase::setMotorOn(bool status)
 {
   this->motor_on_ = status;
+}
+
+void GripperBase::subGraspState(const std_msgs::Bool::ConstPtr& msg)
+{
+  this->grasp_state_ = msg->data;
+}
+
+bool GripperBase::isGraspState() const
+{
+  return grasp_state_;
 }
 
 bool GripperBase::isBusy(void)
@@ -394,4 +417,6 @@ int GripperBase::getFd() const
 {
   return this->fd_;
 }
+
 } /* namespace denso_cobotta_gripper */
+

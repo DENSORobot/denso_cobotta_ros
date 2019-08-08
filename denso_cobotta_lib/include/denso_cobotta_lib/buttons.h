@@ -32,7 +32,7 @@ class Cobotta;
 class Buttons
 {
 public:
-  static const std::string TAG;
+  static constexpr const char* TAG = "Buttons";
 
   Buttons();
   Buttons(bool function_button, bool plus_button, bool minus_button, bool ip_reset_button);

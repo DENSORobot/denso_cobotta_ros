@@ -37,7 +37,7 @@ namespace denso_cobotta_gripper
 class GripperParallel : public GripperBase
 {
 public:
-  static const char* TAG;
+  static constexpr const char* TAG = "GripperParallel";
 
   GripperParallel();
   virtual ~GripperParallel() = default;
@@ -49,8 +49,8 @@ public:
   static void sendStayHere(int fd);
 
 private:
-  bool setGripperCommand(void);
-  bool setServoUpdateData(void);
+  bool calcGripperCommand(void);
+  bool sendServoUpdateData(void);
 
   bool publish(void);
   bool subscribe(void);
@@ -58,10 +58,11 @@ private:
   bool initGripperMove(const double& target_position, const double& speed_percentage, const double& effort);
 
   // Action callback functions.
-  bool gripperCommandActionGoalCB(const control_msgs::GripperCommandGoalConstPtr& goal);
-  bool gripperMoveActionCB(const denso_cobotta_gripper::GripperMoveGoalConstPtr& goal);
-  void cancelCB(void);
-  void actionFeedback(void);
+  bool gripperCommandActionGoal(const control_msgs::GripperCommandGoalConstPtr& goal);
+  bool gripperMoveActionGoal(const denso_cobotta_gripper::GripperMoveGoalConstPtr& goal);
+  void actionCancel(void);
+  void gripperCommandActionFeedback(void);
+  void gripperMoveActionFeedback(void);
 
   // Action servers.
   std::shared_ptr<actionlib::SimpleActionServer<denso_cobotta_gripper::GripperMoveAction>> as_gripper_move_;

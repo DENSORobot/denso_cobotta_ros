@@ -26,37 +26,37 @@
 
 namespace cobotta_common
 {
-const static int DRIVER_VERSION_MAJOR = 1;
-const static int DRIVER_VERSION_MINOR = 2;
+constexpr static int DRIVER_VERSION_MAJOR = 1;
+constexpr static int DRIVER_VERSION_MINOR = 2;
 
-const static std::string PATH_DEVFILE = "/dev/denso_cobotta";
-const static std::string TEMP_PARAMS_PATH = "/tmp/cobotta_parameters.yaml";
-const static uint32_t CONTROL_JOINT_MAX = 6;
-const static double SERVO_PERIOD = 0.008;         //[s]
-const static double DRIVER_UPDATE_PERIOD = 0.01;  //[s]
-const static uint32_t SRVSTATE_CB_LED = 0x00010101;
-const static std::array<double, CONTROL_JOINT_MAX> ARM_COEFF_OUTPOS_TO_PULSE = { 33827.5138204596,  113081.9899244610,
+constexpr const static char* PATH_DEVFILE = "/dev/denso_cobotta";
+constexpr const static char* TEMP_PARAMS_PATH = "/tmp/cobotta_parameters.yaml";
+constexpr static uint32_t CONTROL_JOINT_MAX = 6;
+constexpr static double SERVO_PERIOD = 0.008;         //[s]
+constexpr static double DRIVER_UPDATE_PERIOD = 0.01;  //[s]
+constexpr static uint32_t SRVSTATE_CB_LED = 0x00010101;
+constexpr static std::array<double, CONTROL_JOINT_MAX> ARM_COEFF_OUTPOS_TO_PULSE = { 33827.5138204596,  113081.9899244610,
                                                                                  -53656.4738294077, -48164.2778752878,
                                                                                  46157.4329638175,  -46157.4329638175 };
-const static std::array<double, CONTROL_JOINT_MAX> CALSET_POSE = { 150, -60, 140, -170, 135, 170 };      // [deg]
-const static std::array<double, CONTROL_JOINT_MAX> HOME_POSE = { 0, 30, 100, 0, 50, 0 };                 // [deg]
-const static std::array<double, CONTROL_JOINT_MAX> ARM_MAX_ACCELERATION = { 1., 1., 1., 1., 1., 1. };    // [rad/s^2]
-const static std::array<double, CONTROL_JOINT_MAX> ARM_MAX_VELOCITY = { 0.2, 0.2, 0.2, 0.2, 0.2, 0.2 };  // [rad/s]
-const static std::array<double, CONTROL_JOINT_MAX> OFFSET_LIMIT = { 0.2, 0.2, 0.2, 0.2, 0.2, 0.2 };      // [rad]
-const static uint16_t ACYCLIC_WRITE_MASK = 0x8000;
-const static uint16_t POSITION_DEVIATION_ADDRESS = 0x0203;;
-const static uint16_t GRIPPER_TYPE_ADDRESS = 0x0800;
-const static uint16_t VACUUM_DETECT_ADDRESS = 0x0827;
-const static std::array<uint16_t, JOINT_MAX + 1> POSITION_DEVIATION_PARAMS = { 16, 53, 47, 43, 40, 61, 37, 37, 10240 };
+constexpr static std::array<double, CONTROL_JOINT_MAX> CALSET_POSE = { 150, -60, 140, -170, 135, 170 };      // [deg]
+constexpr static std::array<double, CONTROL_JOINT_MAX> HOME_POSE = { 0, 30, 100, 0, 50, 0 };                 // [deg]
+constexpr static std::array<double, CONTROL_JOINT_MAX> ARM_MAX_ACCELERATION = { 1., 1., 1., 1., 1., 1. };    // [rad/s^2]
+constexpr static std::array<double, CONTROL_JOINT_MAX> ARM_MAX_VELOCITY = { 0.2, 0.2, 0.2, 0.2, 0.2, 0.2 };  // [rad/s]
+constexpr static std::array<double, CONTROL_JOINT_MAX> OFFSET_LIMIT = { 0.2, 0.2, 0.2, 0.2, 0.2, 0.2 };      // [rad]
+constexpr static uint16_t ACYCLIC_WRITE_MASK = 0x8000;
+constexpr static uint16_t POSITION_DEVIATION_ADDRESS = 0x0203;;
+constexpr static uint16_t GRIPPER_TYPE_ADDRESS = 0x0800;
+constexpr static uint16_t VACUUM_DETECT_ADDRESS = 0x0827;
+constexpr static std::array<uint16_t, JOINT_MAX + 1> POSITION_DEVIATION_PARAMS = { 16, 53, 47, 43, 40, 61, 37, 37, 10240 };
 
 static ros::Duration getPeriod()
 {
   return ros::Duration(SERVO_PERIOD);
 }
 
-const static double COMMAND_CYCLE = 0.004;                  /** Update command rate: 4ms (less than 8ms) */
-const static double COMMAND_SHORT_BREAK = SERVO_PERIOD * 2; /** On buffer full, sleep short time */
-const static double COMMAND_LONG_BREAK = SERVO_PERIOD * 8;  /** On buffer overflow, sleep long time */
+constexpr static double COMMAND_CYCLE = 0.004;                  /** Update command rate: 4ms (less than 8ms) */
+constexpr static double COMMAND_SHORT_BREAK = SERVO_PERIOD * 2; /** Sleep short time to avoid command overflow */
+constexpr static double COMMAND_LONG_BREAK = SERVO_PERIOD * 8;  /** Sleep long time to avoid command overflow */
 
 }  // namespace cobotta_common
 

@@ -25,8 +25,6 @@ namespace denso_cobotta_lib
 {
 namespace cobotta
 {
-const char* TAG = "Cobotta";
-
 /**
  * Constructs a Cobotta object.
  */

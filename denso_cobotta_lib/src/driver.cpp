@@ -25,8 +25,6 @@ namespace denso_cobotta_lib
 {
 namespace cobotta
 {
-const char* Driver::TAG = "Driver";
-
 /**
  * @brief Constructs a Driver object.
  *
@@ -50,7 +48,7 @@ int Driver::openDeviceFile() throw(CobottaException, std::runtime_error)
   int myerrno;
 
   errno = 0;
-  fd = open(cobotta_common::PATH_DEVFILE.c_str(), O_RDWR);
+  fd = open(cobotta_common::PATH_DEVFILE, O_RDWR);
   myerrno = errno;
   if (fd < 0)
   {

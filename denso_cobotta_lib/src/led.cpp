@@ -30,7 +30,6 @@ namespace denso_cobotta_lib
 {
 namespace cobotta
 {
-const char* Led::TAG = "Led";
 /**< Functional Safety [default:true] */
 const bool Led::LED_FUNCTIONAL_SAFETY = true;
 /**< ioctl() parameter */
@@ -115,17 +114,17 @@ enum LedColorTable Led::getColorOfState()
   /* safety state: red */
   if (this->getParent()->getSafetyMcu()->isSafeState())
   {
-    return LedColorTable::RED;
+    return LedColorTable::Red;
   }
 
   /* error: yellow */
   if (this->getParent()->getDriver()->isFatalError() ||
       this->getParent()->getDriver()->isError())
   {
-    return LedColorTable::YELLOW;
+    return LedColorTable::Yellow;
   }
   /* normal */
-  return LedColorTable::GREEN;
+  return LedColorTable::Green;
 }
 
 /**

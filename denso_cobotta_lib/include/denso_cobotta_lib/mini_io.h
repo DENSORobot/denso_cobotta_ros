@@ -34,7 +34,7 @@ class Cobotta;
 class MiniIo
 {
 public:
-  static const char* TAG;
+  static constexpr const char* TAG = "MiniIo";
 
   MiniIo(std::shared_ptr<Cobotta> parent);
   MiniIo(std::shared_ptr<Cobotta> parent, uint16_t input, uint16_t output);

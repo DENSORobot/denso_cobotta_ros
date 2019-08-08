@@ -26,8 +26,6 @@ namespace denso_cobotta_lib
 {
 namespace cobotta
 {
-const char* CobottaException::TAG = "CobottaException";
-
 /**
  * Constructs a CobottaException object.
  * @code

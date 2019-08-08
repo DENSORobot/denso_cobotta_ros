@@ -30,7 +30,7 @@
 void signalHandler(int sig)
 {
   int fd;
-  fd = open(cobotta_common::PATH_DEVFILE.c_str(), O_RDWR);
+  fd = open(cobotta_common::PATH_DEVFILE, O_RDWR);
   if (fd)
   {
     denso_cobotta_lib::cobotta::Motor::sendStop(fd);
@@ -134,7 +134,7 @@ bool DensoCobottaDriver::initialize(ros::NodeHandle& nh)
       }
     }
 
-    cobotta_->getLed()->forceChange(static_cast<uint32_t>(LedColorTable::WHITE));
+    cobotta_->getLed()->forceChange(static_cast<uint32_t>(LedColorTable::White));
 
     // Service server
     sv_set_motor_ = nh.advertiseService("set_motor_state", &DensoCobottaDriver::setMotorStateSv, this);
@@ -575,7 +575,7 @@ bool DensoCobottaDriver::getBrakeStateSv(GetBrakeState::Request& /* req */, GetB
  * @param res true:success false:failure
  * @return
  */
-bool DensoCobottaDriver::execCalsetSv(ClearError::Request& /* req */, ClearError::Response& res)
+bool DensoCobottaDriver::execCalsetSv(ExecCalset::Request& /* req */, ExecCalset::Response& res)
 {
   res.success = true;
   static const double process_wait_time = 0.02;
@@ -696,14 +696,14 @@ bool DensoCobottaDriver::execCalsetSv(ClearError::Request& /* req */, ClearError
   {
     // create params file
     {
-      std::ifstream ifs(TEMP_PARAMS_PATH.c_str());
+      std::ifstream ifs(cobotta_common::TEMP_PARAMS_PATH);
       if (!ifs)
       {
-        std::ofstream ofs(TEMP_PARAMS_PATH.c_str());
+        std::ofstream ofs(cobotta_common::TEMP_PARAMS_PATH);
       }
     }
-    YAML::Node cobotta_params = YAML::LoadFile(TEMP_PARAMS_PATH);
-    std::ofstream ofs(TEMP_PARAMS_PATH.c_str());
+    YAML::Node cobotta_params = YAML::LoadFile(cobotta_common::TEMP_PARAMS_PATH);
+    std::ofstream ofs(cobotta_common::TEMP_PARAMS_PATH);
     cobotta_params["pulse_offset"] = pulse_offset;
     ofs << cobotta_params << std::endl;
   }

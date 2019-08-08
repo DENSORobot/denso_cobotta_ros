@@ -1,11 +1,6 @@
 <launch>
+  <!-- "gripper type": selected from none/parallel/vacuum. --> 
   <arg name="gripper_type" default="parallel"/>
-
-  <!-- The argument for specifying robot type -->
-  <arg name="robot_name" default="cobotta" />
-
-  <!-- The robot config argument -->
-  <arg name="robot_config" value="$(arg robot_name)_config" />
 
   <!-- Set the param that trajectory_execution_manager nees to find the controller plugin -->
   <arg name="moveit_controller_manager" default="moveit_simple_controller_manager/MoveItSimpleControllerManager" />
@@ -15,7 +10,9 @@
   <arg name="use_controller_manager" default="true" />
   <param name="use_controller_manager" value="$(arg use_controller_manager)" />
 
-  <!-- The rest of the params are specific to this plugin -->
+  <!-- Set the param listing controllers.
+    NOTE: We switch the controller depending on the use of parallel gripper.
+  -->
   <group if="$(eval arg('gripper_type') == 'parallel')">
       <rosparam file="$(find denso_cobotta_moveit_config)/config/controllers_with_parallel.yaml" />
   </group>

@@ -87,7 +87,7 @@ struct DriverCommandInfo
 class Driver
 {
 public:
-  static const char* TAG;
+  static constexpr const char* TAG = "Driver";
 
   Driver(const std::shared_ptr<Cobotta>& parent);
   virtual ~Driver() = default;

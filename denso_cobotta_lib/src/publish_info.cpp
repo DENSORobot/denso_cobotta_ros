@@ -22,8 +22,6 @@ namespace denso_cobotta_lib
 {
 namespace cobotta
 {
-static const char* TAG = "PublishInfo";
-
 /**
  *  Constructs PublishInfo object
  */

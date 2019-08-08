@@ -36,7 +36,7 @@ namespace cobotta
 class CobottaException : public std::exception
 {
 public:
-  static const char* TAG;
+  static constexpr const char* TAG = "CobottaException";
 
   CobottaException(const uint32_t code);
   virtual ~CobottaException() = default;

@@ -20,8 +20,6 @@
 
 #include "denso_cobotta_lib/cobotta.h"
 
-#define GRIPPER_STRING(var) #var
-
 namespace denso_cobotta_lib
 {
 namespace cobotta
@@ -29,23 +27,23 @@ namespace cobotta
 
 enum class GripperType
 {
-  undefined = -1,
-  none = 0,
-  parallel = 1,
-  vacuum = 2,
+  Undefined = -1,
+  None = 0,
+  Parallel = 1,
+  Vacuum = 2,
 };
 
 class Gripper
 {
 public:
-  static const char* TAG;
+  static constexpr const char* TAG = "Gripper";
 
   Gripper(const std::shared_ptr<Cobotta>& parent);
   virtual ~Gripper() = default;
 
   bool update(bool gripper_state);
 
-  static GripperType convertGripperType(std::string string);
+  static GripperType convertGripperType(const std::string& gripper_type);
   static long readHwGripperState(int fd) throw(CobottaException, std::runtime_error);
 
 private:

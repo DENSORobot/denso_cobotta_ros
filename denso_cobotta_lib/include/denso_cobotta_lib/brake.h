@@ -39,7 +39,7 @@ class Cobotta;
 class Brake
 {
 public:
-  static const char* TAG;
+  static constexpr const char* TAG = "Brake";
 
   Brake(const std::shared_ptr<Cobotta>& parent);
   Brake(std::shared_ptr<Cobotta> parent, const std::array<std::array<int, JOINT_MAX>, ARM_MAX>& state_set);
