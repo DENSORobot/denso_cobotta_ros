@@ -1,6 +1,0 @@
-int32 direction
-float64 power_percentage
----
-bool success
----
-float64 pressure
