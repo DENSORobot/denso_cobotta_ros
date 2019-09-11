@@ -1,0 +1,53 @@
+<launch>
+  <!-- "gripper type": Select from none/parallel/vacuum. -->
+  <arg name="gripper_type" default="parallel"/>
+  <group ns="/cobotta">
+    <param name="gripper_type" value="$(arg gripper_type)"/>
+  </group>
+
+  <!-- "sim": Determine launching as simulation mode or not. -->
+  <arg name="sim" default="false" />
+
+  <!-- Include files for simulation. -->
+  <group if="$(arg sim)">
+    <include file="$(find denso_cobotta_gazebo)/launch/denso_cobotta_gazebo.launch"/>
+  </group>
+
+  <!-- Include files for real robot. -->
+  <group unless="$(arg sim)">
+    <!-- Files for denso_cobotta_driver node. -->
+    <include file="$(find denso_cobotta_driver)/launch/denso_cobotta_driver.launch">
+      <arg name="enable_calset" value="false" />
+    </include>
+
+    <!-- Files for denso_cobotta_control node. -->
+    <include file="$(find denso_cobotta_control)/launch/denso_cobotta_control.launch"/>
+
+    <!-- Files for denso_cobotta_gripper node. 
+      NOTE: Files are includes unless "gripper_type" is "none". 
+    -->
+    <group if="$(eval arg('gripper_type') != 'none')">
+      <include file="$(find denso_cobotta_gripper)/launch/denso_cobotta_gripper.launch">
+        <arg name="gripper_type" value="$(arg gripper_type)"/>
+      </include>
+    </group>
+  </group>
+
+  <!-- load the robot_description parameter before launching ROS-I nodes -->
+  <include file="$(find denso_cobotta_moveit_config)/launch/planning_context.launch" >
+    <arg name="load_robot_description" value="true" />
+    <arg name="gripper_type" value="$(arg gripper_type)"/>
+  </include>
+
+  <!-- Include files for MoveIt! -->
+  <include file="$(find denso_cobotta_moveit_config)/launch/move_group.launch">
+    <arg name="publish_monitored_planning_scene" value="true" />
+    <arg name="gripper_type" value="$(arg gripper_type)"/>
+  </include>
+
+  <!-- Include files for rviz -->
+  <include file="$(find denso_cobotta_moveit_config)/launch/moveit_rviz.launch">
+    <arg name="config" value="true"/>
+  </include>
+  
+</launch>

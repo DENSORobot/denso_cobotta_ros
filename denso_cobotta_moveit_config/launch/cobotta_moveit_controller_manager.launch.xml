@@ -1,0 +1,24 @@
+<launch>
+  <!-- "gripper type": selected from none/parallel/vacuum. --> 
+  <arg name="gripper_type" default="parallel"/>
+
+  <!-- Set the param that trajectory_execution_manager nees to find the controller plugin -->
+  <arg name="moveit_controller_manager" default="moveit_simple_controller_manager/MoveItSimpleControllerManager" />
+  <param name="moveit_controller_manager" value="$(arg moveit_controller_manager)"/>
+
+  <!-- Flag indicating whether the controller manager should be used or not -->
+  <arg name="use_controller_manager" default="true" />
+  <param name="use_controller_manager" value="$(arg use_controller_manager)" />
+
+  <!-- Set the param listing controllers.
+    NOTE: We switch the controller depending on the use of parallel gripper.
+  -->
+  <group if="$(eval arg('gripper_type') == 'parallel')">
+      <rosparam file="$(find denso_cobotta_moveit_config)/config/controllers_with_parallel.yaml" />
+  </group>
+
+  <group unless="$(eval arg('gripper_type') == 'parallel')">
+      <rosparam file="$(find denso_cobotta_moveit_config)/config/controllers.yaml" />
+  </group>
+
+</launch>

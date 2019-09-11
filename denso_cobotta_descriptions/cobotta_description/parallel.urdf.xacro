@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot name="cobotta" xmlns:xacro="http://www.ros.org/wiki/xacro">
+	<link name="gripper_base">
+		<visual>
+			<origin rpy="0 0 0" xyz="0.000000 0.000000 0.000000"/>
+			<geometry>
+				<mesh filename="package://denso_cobotta_descriptions/cobotta_description/gripper_base.dae" scale="1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<geometry>
+				<mesh filename="package://denso_cobotta_descriptions/cobotta_description/gripper_base.dae" scale="1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value="1"/>
+			<origin rpy="0.000000 0.000000 0.000000" xyz="0.000000 0.000000 0.000000"/>
+			<inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+		</inertial>
+	</link>
+	<joint name="joint_gripper_base" type="fixed">
+		<parent link="J6"/>
+		<child link="gripper_base"/>
+		<origin rpy="0.000000 0.000000 0.000000" xyz="0.000000 0.000000 0.0000000"/>
+	</joint>
+	<link name="left_finger">
+		<visual>
+			<origin rpy="0.000000 0.000000 0.000000" xyz="0.000000 0.000000 -0.060000"/>
+			<geometry>
+				<mesh filename="package://denso_cobotta_descriptions/cobotta_description/left_finger.dae" scale="1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin rpy="0 0 0" xyz="0.000000 0.000000 -0.060000"/>
+			<geometry>
+				<mesh filename="package://denso_cobotta_descriptions/cobotta_description/left_finger.dae" scale="1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value="1"/>
+			<origin rpy="0.000000 0.000000 0.000000" xyz="0.000000 0.000000 0.000000"/>
+			<inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+		</inertial>
+	</link>
+	<joint name="joint_gripper" type="prismatic">
+		<parent link="gripper_base"/>
+		<child link="left_finger"/>
+		<origin rpy="0.000000 0.000000 0.000000" xyz="0.000000 0.000000 0.06000"/>
+		<axis xyz="-0.000000 1.000000 -0.000000"/>
+		<limit effort="20" lower="0.000000" upper="0.015000" velocity="0.040000"/>
+		<dynamics damping="0" friction="0"/>
+	</joint>
+	<transmission name="trans_gripper">
+		<type>transmission_interface/SimpleTransmission</type>
+		<joint name="joint_gripper">
+			<hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+		</joint>
+		<actuator name="motor_gripper">
+			<hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+			<mechanicalReduction>1</mechanicalReduction>
+		</actuator>
+	</transmission>
+	<link name="right_finger">
+		<visual>
+			<origin rpy="0.000000 0.000000 0.000000" xyz="0.000000 0.000000 -0.060000"/>
+			<geometry>
+				<mesh filename="package://denso_cobotta_descriptions/cobotta_description/right_finger.dae" scale="1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin rpy="0 0 0" xyz="0.000000 0.000000 -0.060000"/>
+			<geometry>
+				<mesh filename="package://denso_cobotta_descriptions/cobotta_description/right_finger.dae" scale="1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value="1"/>
+			<origin rpy="0.000000 0.000000 0.000000" xyz="0.000000 0.000000 0.000000"/>
+			<inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+		</inertial>
+	</link>
+	<joint name="joint_gripper_mimic" type="prismatic">
+		<parent link="gripper_base"/>
+		<child link="right_finger"/>
+		<mimic joint="joint_gripper" multiplier="-1.000000" offset="0.000000"/>
+		<origin rpy="0.000000 0.000000 0.000000" xyz="0.000000 0.000000 0.060000"/>
+		<axis xyz="-0.000000 1.000000 -0.000000"/>
+		<limit effort="20" lower="-0.015000" upper="0.000000" velocity="0.040000"/>
+		<dynamics damping="0" friction="0"/>
+	</joint>
+</robot>
