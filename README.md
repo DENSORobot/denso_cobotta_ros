@@ -31,4 +31,4 @@ After executing the above command, you can use the following services and topics
 
 ## Installation and requirements
 
-Please see the [Getting stated](https://densorobot.github.io/docs/denso_cobotta_ros/getting_started.html) page.
+Please see the [Getting started](https://densorobot.github.io/docs/denso_cobotta_ros/getting_started.html) page.
