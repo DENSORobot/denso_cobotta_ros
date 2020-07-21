@@ -28,3 +28,7 @@ After executing the above command, you can use the following services and topics
   - /cobotta/position_button
   - /cobotta/robot_state
   - /cobotta/safe_state
+
+## Installation and requirements
+
+Please see the [Getting started](https://densorobot.github.io/docs/denso_cobotta_ros/getting_started.html) page.
