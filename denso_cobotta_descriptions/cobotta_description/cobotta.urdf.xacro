@@ -8,7 +8,7 @@
 	-->
 	<xacro:property name="joint_damping" value="0.001" />
 	<xacro:property name="joint_friction" value="0.61" />
-	<xacro:property name="base_mass" value="1.4" /> 
+	<xacro:property name="base_mass" value="1.4" />
 	<xacro:property name="J1_mass" value="1.29" />
 	<xacro:property name="J2_mass" value="0.39" />
 	<xacro:property name="J3_mass" value="0.35" />

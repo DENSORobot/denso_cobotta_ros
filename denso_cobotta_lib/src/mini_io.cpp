@@ -80,7 +80,7 @@ bool MiniIo::update(const uint16_t input, uint16_t output)
  * @exception CobottaException An error defined by cobotta
  * @exception RuntimeError An other error
  */
-void MiniIo::sendOutputStateValue(const uint16_t state) throw(CobottaException, std::runtime_error)
+void MiniIo::sendOutputStateValue(const uint16_t state) noexcept(false)
 {
   this->writeHwOutput(this->getParent()->getFd(), state);
   while (state != this->output_)
@@ -95,7 +95,7 @@ void MiniIo::sendOutputStateValue(const uint16_t state) throw(CobottaException, 
  * @exception CobottaException An error defined by cobotta
  * @exception RuntimeError An other error
  */
-uint16_t MiniIo::receiveOutputStateValue() const throw(CobottaException, std::runtime_error)
+uint16_t MiniIo::receiveOutputStateValue() const noexcept(false)
 {
   return this->readHwOutput(this->getParent()->getFd());
 }
@@ -106,7 +106,7 @@ uint16_t MiniIo::receiveOutputStateValue() const throw(CobottaException, std::ru
  * @exception CobottaException An error defined by cobotta
  * @exception RuntimeError An other error
  */
-uint16_t MiniIo::receiveInputStateValue() const throw(CobottaException, std::runtime_error)
+uint16_t MiniIo::receiveInputStateValue() const noexcept(false)
 {
   return this->readHwInput(this->getParent()->getFd());
 }
@@ -118,7 +118,7 @@ uint16_t MiniIo::receiveInputStateValue() const throw(CobottaException, std::run
  * @exception CobottaException An error defined by cobotta
  * @exception RuntimeError An other error
  */
-void MiniIo::writeHwOutput(const int fd, uint16_t value) throw(CobottaException, std::runtime_error)
+void MiniIo::writeHwOutput(const int fd, uint16_t value) noexcept(false)
 {
   int ret;
   IOCTL_DATA_MINI_OUTPUT dat;
@@ -150,7 +150,7 @@ void MiniIo::writeHwOutput(const int fd, uint16_t value) throw(CobottaException,
  * @exception CobottaException An error defined by cobotta
  * @exception RuntimeError An other error
  */
-uint16_t MiniIo::readHwOutput(const int fd) throw(CobottaException, std::runtime_error)
+uint16_t MiniIo::readHwOutput(const int fd) noexcept(false)
 {
   int ret;
   IOCTL_DATA_MINI_OUTPUT_READ dat;
@@ -180,7 +180,7 @@ uint16_t MiniIo::readHwOutput(const int fd) throw(CobottaException, std::runtime
  * @exception CobottaException An error defined by cobotta
  * @exception RuntimeError An other error
  */
-uint16_t MiniIo::readHwInput(const int fd) throw(CobottaException, std::runtime_error)
+uint16_t MiniIo::readHwInput(const int fd) noexcept(false)
 {
   int ret;
   IOCTL_DATA_MINI_INPUT dat;

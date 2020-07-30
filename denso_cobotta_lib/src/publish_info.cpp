@@ -48,7 +48,7 @@ void PublishInfo::setMinusButton(bool minus_button)
 /**
  *  @param[in] the arm no of driver queue size
  */
-uint32_t PublishInfo::getDriverQueueSize(long arm_no) const throw(std::invalid_argument)
+uint32_t PublishInfo::getDriverQueueSize(long arm_no) const noexcept(false)
 {
   return driver_queue_size_[arm_no];
 }
@@ -65,7 +65,7 @@ std::array<uint32_t, ARM_MAX> PublishInfo::getDriverQueueSize() const
  *  @param[in] arm_no       the arm no of driver queue
  *  @param[in] queue_size   queue_size
  */
-void PublishInfo::setDriverQueueSize(long arm_no, uint32_t queue_size) throw(std::invalid_argument)
+void PublishInfo::setDriverQueueSize(long arm_no, uint32_t queue_size) noexcept(false)
 {
   driver_queue_size_[arm_no] = queue_size;
 }

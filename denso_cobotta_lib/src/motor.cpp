@@ -152,7 +152,7 @@ bool Motor::canStart(void) const
  * @exception CobottaException An error defined by COBOTTA
  * @exception RuntimeError An other error
  */
-void Motor::start(void) throw(CobottaException, std::runtime_error)
+void Motor::start(void) noexcept(false)
 {
   /* check */
   if (this->getState() != MotorState::Off)
@@ -187,7 +187,7 @@ void Motor::start(void) throw(CobottaException, std::runtime_error)
  * @exception CobottaException An error defined by COBOTTA
  * @exception RuntimeError An other error
  */
-void Motor::stop(void) throw(CobottaException, std::runtime_error)
+void Motor::stop(void) noexcept(false)
 {
   /*
    * check
@@ -214,7 +214,7 @@ void Motor::stop(void) throw(CobottaException, std::runtime_error)
  * @exception CobottaException An error defined by COBOTTA
  * @exception RuntimeError An other error
  */
-void Motor::sendStop(int fd) throw(CobottaException, std::runtime_error)
+void Motor::sendStop(int fd) noexcept(false)
 {
   ROS_INFO("%s: Stop anyway.", TAG);
   Motor::writeHwOff(fd);
@@ -226,7 +226,7 @@ void Motor::sendStop(int fd) throw(CobottaException, std::runtime_error)
  * @exception CobottaException An error defined by COBOTTA
  * @exception RuntimeError An other error
  */
-void Motor::writeHwOn(int fd) throw(CobottaException, std::runtime_error)
+void Motor::writeHwOn(int fd) noexcept(false)
 {
   int ret;
   IOCTL_DATA_RESULT dat;
@@ -253,7 +253,7 @@ void Motor::writeHwOn(int fd) throw(CobottaException, std::runtime_error)
  * @exception CobottaException An error defined by COBOTTA
  * @exception RuntimeError An other error
  */
-void Motor::writeHwOff(int fd) throw(CobottaException, std::runtime_error)
+void Motor::writeHwOff(int fd) noexcept(false)
 {
   int ret;
   IOCTL_DATA_RESULT dat;
@@ -281,7 +281,7 @@ void Motor::writeHwOff(int fd) throw(CobottaException, std::runtime_error)
  * @exception CobottaException An error defined by COBOTTA
  * @exception RuntimeError An other error
  */
-int Motor::readHw(int fd) throw(CobottaException, std::runtime_error)
+int Motor::readHw(int fd) noexcept(false)
 {
   int ret;
   IOCTL_DATA_MOTOR_STATE dat;

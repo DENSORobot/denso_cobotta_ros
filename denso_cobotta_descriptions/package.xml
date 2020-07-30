@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>denso_cobotta_descriptions</name>
-  <version>1.2.2</version>
+  <version>1.2.3</version>
   <description>The denso_cobotta_descriptions package</description>
   <maintainer email="fa-support@denso-wave.co.jp">DENSO WAVE INCORPORATED</maintainer>
   <license>GPL</license>

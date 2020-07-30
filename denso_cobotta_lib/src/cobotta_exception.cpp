@@ -66,7 +66,7 @@ CobottaException::CobottaException(const uint32_t code)
  *
  * @return A pointer to a c-string: "<message> [error_level:error_code]"
  */
-const char* CobottaException::what() const throw ()
+const char* CobottaException::what() const noexcept
 {
   return this->what_message_.c_str();
 }

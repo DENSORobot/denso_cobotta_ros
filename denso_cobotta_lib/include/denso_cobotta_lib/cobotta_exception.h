@@ -41,7 +41,7 @@ public:
   CobottaException(const uint32_t code);
   virtual ~CobottaException() = default;
 
-  virtual const char* what() const throw();
+  virtual const char* what() const noexcept;
 
   int getErrorLevel() const;
   uint32_t getCode() const;

@@ -60,7 +60,7 @@ bool Gripper::update(bool gripper_state)
   return changed;
 }
 
-long Gripper::readHwGripperState(int fd) throw(CobottaException, std::runtime_error)
+long Gripper::readHwGripperState(int fd) noexcept(false)
 {
   IOCTL_DATA_GRIPPER_GETSTATE dat{ 0 };
 

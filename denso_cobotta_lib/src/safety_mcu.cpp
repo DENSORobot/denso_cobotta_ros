@@ -163,7 +163,7 @@ bool denso_cobotta_lib::cobotta::SafetyMcu::canMoveState()
  * @exception CobottaException An error defined by COBOTTA
  * @exception RuntimeError An other error
  */
-void SafetyMcu::moveToStandby() throw(CobottaException, std::runtime_error)
+void SafetyMcu::moveToStandby() noexcept(false)
 {
   /* check */
   if (!this->canMoveState())
@@ -217,7 +217,7 @@ void SafetyMcu::moveToStandby() throw(CobottaException, std::runtime_error)
  * @exception CobottaException An error defined by COBOTTA
  * @exception RuntimeError An other error
  */
-void SafetyMcu::moveToNormal() throw(CobottaException, std::runtime_error)
+void SafetyMcu::moveToNormal() noexcept(false)
 {
   /* check */
   if (!this->canMoveState())
@@ -262,7 +262,7 @@ void SafetyMcu::moveToNormal() throw(CobottaException, std::runtime_error)
  * @exception CobottaException An error defined by COBOTTA
  * @exception RuntimeError An other error
  */
-void SafetyMcu::forceMoveToStandby() throw(CobottaException, std::runtime_error)
+void SafetyMcu::forceMoveToStandby() noexcept(false)
 {
   ROS_INFO("%s: To clear watchdog-timer error...", TAG);
 
@@ -291,7 +291,7 @@ void SafetyMcu::forceMoveToStandby() throw(CobottaException, std::runtime_error)
  * @exception CobottaException An error defined by COBOTTA
  * @exception RuntimeError An other error
  */
-struct StateCode SafetyMcu::dequeue() throw(CobottaException, std::runtime_error)
+struct StateCode SafetyMcu::dequeue() noexcept(false)
 {
   return this->readHwQueue(this->getParent()->getFd());
 }
@@ -303,7 +303,7 @@ struct StateCode SafetyMcu::dequeue() throw(CobottaException, std::runtime_error
  * @exception CobottaException An error defined by COBOTTA
  * @exception RuntimeError An other error
  */
-void SafetyMcu::writeHwState(const int fd, const enum SafetyMcuCommand command) throw(CobottaException, std::runtime_error)
+void SafetyMcu::writeHwState(const int fd, const enum SafetyMcuCommand command) noexcept(false)
 {
   int ret;
   IOCTL_DATA_SAFETY_SEND dat;
@@ -335,7 +335,7 @@ void SafetyMcu::writeHwState(const int fd, const enum SafetyMcuCommand command) 
  * @exception CobottaException An error defined by COBOTTA
  * @exception RuntimeError An other error
  */
-struct StateCode SafetyMcu::readHwQueue(const int fd) throw(CobottaException, std::runtime_error)
+struct StateCode SafetyMcu::readHwQueue(const int fd) noexcept(false)
 {
   int ret;
   IOCTL_DATA_SAFETY_CHECKSTATE dat;

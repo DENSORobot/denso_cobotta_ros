@@ -42,7 +42,7 @@ Driver::Driver(const std::shared_ptr<Cobotta>& parent)
  * @exception CobottaException An error defined by COBOTTA
  * @exception RuntimeError An other error
  */
-int Driver::openDeviceFile() throw(CobottaException, std::runtime_error)
+int Driver::openDeviceFile() noexcept(false)
 {
   int fd;
   int myerrno;
@@ -144,7 +144,7 @@ void Driver::printVersion() const
  * @exception CobottaException An error defined by COBOTTA
  * @exception RuntimeError An other error
  */
-void Driver::clearError() throw(CobottaException, std::runtime_error)
+void Driver::clearError() noexcept(false)
 {
   if (isFatalError() || parent_->getSafetyMcu()->isFatalError())
   {
@@ -189,7 +189,7 @@ void Driver::clearError() throw(CobottaException, std::runtime_error)
  * @exception RuntimeError An other error
  * @exception InvalidArgument arm_no is invalid.
  */
-StateCode Driver::dequeue(long arm_no) throw(CobottaException, std::runtime_error, std::invalid_argument)
+StateCode Driver::dequeue(long arm_no) noexcept(false)
 {
   Driver::checkArmNo(arm_no);
   return Driver::readHwQueue(parent_->getFd(), arm_no);
@@ -204,7 +204,7 @@ StateCode Driver::dequeue(long arm_no) throw(CobottaException, std::runtime_erro
  * @exception CobottaException An error defined by COBOTTA
  * @exception RuntimeError An other error
  */
-DriverStateInfo Driver::receiveAllState() throw(CobottaException, std::runtime_error)
+DriverStateInfo Driver::receiveAllState() noexcept(false)
 {
   return Driver::readHwState(parent_->getFd());
 }
@@ -219,7 +219,7 @@ DriverStateInfo Driver::receiveAllState() throw(CobottaException, std::runtime_e
  * @exception CobottaException An error defined by COBOTTA
  * @exception RuntimeError An other error
  */
-DriverVersion Driver::readHwVersion(int fd) throw(CobottaException, std::runtime_error)
+DriverVersion Driver::readHwVersion(int fd) noexcept(false)
 {
   int ret;
   int myerrno;
@@ -265,7 +265,7 @@ DriverVersion Driver::readHwVersion(int fd) throw(CobottaException, std::runtime
  * @exception CobottaException An error defined by COBOTTA
  * @exception RuntimeError An other error
  */
-void Driver::writeHwClear(int fd) throw(CobottaException, std::runtime_error)
+void Driver::writeHwClear(int fd) noexcept(false)
 {
   int ret;
   int myerrno;
@@ -292,7 +292,7 @@ void Driver::writeHwClear(int fd) throw(CobottaException, std::runtime_error)
  * @exception CobottaException An error defined by COBOTTA
  * @exception RuntimeError An other error
  */
-StateCode Driver::readHwQueue(int fd, long arm_no) throw(CobottaException, std::runtime_error)
+StateCode Driver::readHwQueue(int fd, long arm_no) noexcept(false)
 {
   int ret;
   int myerrno;
@@ -323,7 +323,7 @@ StateCode Driver::readHwQueue(int fd, long arm_no) throw(CobottaException, std::
  * @exception CobottaException An error defined by COBOTTA
  * @exception RuntimeError An other error
  */
-DriverStateInfo Driver::readHwState(int fd) throw(CobottaException, std::runtime_error)
+DriverStateInfo Driver::readHwState(int fd) noexcept(false)
 {
   int ret;
   int myerrno;
@@ -383,8 +383,7 @@ DriverStateInfo Driver::readHwState(int fd) throw(CobottaException, std::runtime
  * @exception RuntimeError An other error
  */
 void Driver::writeHwAcyclicCommAll(int fd, uint16_t address, std::array<uint16_t, JOINT_MAX + 1> send_values,
-                                   std::array<uint16_t, JOINT_MAX + 1>& recv_values) throw(CobottaException,
-                                                                                           std::runtime_error)
+                                   std::array<uint16_t, JOINT_MAX + 1>& recv_values) noexcept(false)
 {
   int ret;
   int myerrno;
@@ -423,7 +422,7 @@ void Driver::writeHwAcyclicCommAll(int fd, uint16_t address, std::array<uint16_t
  * @exception RuntimeError An other error
  */
 void Driver::writeHwAcyclicComm(int fd, long arm_no, long joint_no, uint16_t address, uint16_t send_value,
-                                uint16_t& recv_value) throw(CobottaException, std::invalid_argument, std::runtime_error)
+                                uint16_t& recv_value) noexcept(false)
 {
   int ret;
   int myerrno;
@@ -457,7 +456,7 @@ void Driver::writeHwAcyclicComm(int fd, long arm_no, long joint_no, uint16_t add
  * @param fd file descriptor
  * @exception RuntimeError An other error
  */
-struct DriverCommandInfo Driver::writeHwUpdate(int fd, const SRV_COMM_SEND& send_data) throw(std::runtime_error)
+struct DriverCommandInfo Driver::writeHwUpdate(int fd, const SRV_COMM_SEND& send_data) noexcept(false)
 {
   IOCTL_DATA_UPDATE dat{ 0 };
   DriverCommandInfo info;
@@ -482,8 +481,7 @@ struct DriverCommandInfo Driver::writeHwUpdate(int fd, const SRV_COMM_SEND& send
   return info;
 }
 
-SRV_COMM_RECV Driver::readHwEncoder(int fd, long arm_no) throw(CobottaException, std::runtime_error,
-                                                               std::invalid_argument)
+SRV_COMM_RECV Driver::readHwEncoder(int fd, long arm_no) noexcept(false)
 {
   IOCTL_DATA_GETENC dat{ 0 };
   dat.arm_no = arm_no;
@@ -506,13 +504,13 @@ SRV_COMM_RECV Driver::readHwEncoder(int fd, long arm_no) throw(CobottaException,
   return dat.recv;
 }
 
-uint32_t Driver::getStateQueueSize(long arm_no) const throw(std::invalid_argument)
+uint32_t Driver::getStateQueueSize(long arm_no) const noexcept(false)
 {
   Driver::checkArmNo(arm_no);
   return queue_size_[arm_no];
 }
 
-void Driver::checkArmNo(long arm_no) throw(std::invalid_argument)
+void Driver::checkArmNo(long arm_no) noexcept(false)
 {
   if (arm_no < 0 || arm_no > ARM_MAX)
   {
@@ -520,7 +518,7 @@ void Driver::checkArmNo(long arm_no) throw(std::invalid_argument)
                                 std::to_string(ARM_MAX) + ").");
   }
 }
-void Driver::checkJointNo(long joint_no) throw(std::invalid_argument)
+void Driver::checkJointNo(long joint_no) noexcept(false)
 {
   if (joint_no < 0 || joint_no > JOINT_MAX)
   {

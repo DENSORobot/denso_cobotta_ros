@@ -57,30 +57,28 @@ public:
   Led(std::shared_ptr<Cobotta> parent);
   virtual ~Led() = default;
 
-  void update() throw(CobottaException, std::runtime_error);
+  void update() noexcept(false);
 
   enum LedColorTable getColorOfState();
   bool canChange();
 
-  bool change(const uint32_t color) throw(CobottaException, std::runtime_error);
-  bool change(const uint8_t blink, const uint8_t red, const uint8_t green, const uint8_t blue)
-    throw(CobottaException, std::runtime_error);
-  bool change(const struct LedColor color) throw(CobottaException, std::runtime_error);
-  bool change(const enum LedColorTable color) throw(CobottaException, std::runtime_error);
+  bool change(const uint32_t color) noexcept(false);
+  bool change(const uint8_t blink, const uint8_t red, const uint8_t green, const uint8_t blue) noexcept(false);
+  bool change(const struct LedColor color) noexcept(false);
+  bool change(const enum LedColorTable color) noexcept(false);
 
-  void forceChange(const uint32_t color) throw(CobottaException, std::runtime_error);
-  void forceChange(const uint8_t blink, const uint8_t red, const uint8_t green, const uint8_t blue)
-    throw(CobottaException, std::runtime_error);
-  void forceChange(const struct LedColor color) throw(CobottaException, std::runtime_error);
-  void forceChange(const enum LedColorTable color) throw(CobottaException, std::runtime_error);
+  void forceChange(const uint32_t color) noexcept(false);
+  void forceChange(const uint8_t blink, const uint8_t red, const uint8_t green, const uint8_t blue) noexcept(false);
+  void forceChange(const struct LedColor color) noexcept(false);
+  void forceChange(const enum LedColorTable color) noexcept(false);
 
-  uint32_t receiveColor(void) throw(CobottaException, std::runtime_error);
+  uint32_t receiveColor(void) noexcept(false);
   static struct LedColor toLedColor(const uint32_t state);
   static uint32_t toUint32(const struct LedColor color);
 
 private:
-  static void writeHw(int fd, uint32_t color) throw(CobottaException, std::runtime_error);
-  static uint32_t readHw(int fd) throw(CobottaException, std::runtime_error);
+  static void writeHw(int fd, uint32_t color) noexcept(false);
+  static uint32_t readHw(int fd) noexcept(false);
 
   uint32_t getLastColor() const;
   void setLastColor(uint32_t color);

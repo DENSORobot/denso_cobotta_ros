@@ -30,7 +30,7 @@
   <!-- The name of the parameter under which the URDF is loaded -->
   <arg name="robot_description" default="robot_description"/>
   <!-- Load universal robot description format (URDF) -->
-  <param if="$(arg load_robot_description)" name="$(arg robot_description)" command="$(find xacro)/xacro --inorder $(find denso_cobotta_descriptions)/cobotta_description/cobotta.urdf.xacro gripper_type:=$(arg gripper_type) "/>
+  <param if="$(arg load_robot_description)" name="$(arg robot_description)" command="$(find xacro)/xacro $(find denso_cobotta_descriptions)/cobotta_description/cobotta.urdf.xacro gripper_type:=$(arg gripper_type) "/>
 
   <!-- push robot_description to factory and spawn robot in gazebo -->
   <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model cobotta " respawn="false" output="screen" />
@@ -41,7 +41,7 @@
   <node name="controller_spawner" pkg="controller_manager" ns="/cobotta" type="spawner" args="joint_state_controller arm_controller" respawn="false" output="screen"/>
 
   <!-- Load joint controller configurations for gazebo to parameter server -->
-  <rosparam file="$(find denso_cobotta_descriptions)/cobotta_description/gazebo_cobotta_control.yaml" command="load"/>
+  <rosparam file="$(find denso_cobotta_descriptions)/cobotta_description/gazebo_cobotta_control.yaml" command="load" ns="cobotta"/>
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="false" output="screen" required="true">
     <remap from="/joint_states" to="/cobotta/joint_states" />
   </node>

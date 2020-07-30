@@ -44,7 +44,7 @@ public:
   bool update(bool gripper_state);
 
   static GripperType convertGripperType(const std::string& gripper_type);
-  static long readHwGripperState(int fd) throw(CobottaException, std::runtime_error);
+  static long readHwGripperState(int fd) noexcept(false);
 
 private:
   std::shared_ptr<Cobotta> getParent() const;

@@ -70,10 +70,10 @@ public:
               const bool emergency_button, const bool protective_button);
 
   bool canMoveState();
-  void moveToStandby() throw(CobottaException, std::runtime_error);
-  void moveToNormal() throw(CobottaException, std::runtime_error);
-  void forceMoveToStandby() throw(CobottaException, std::runtime_error);
-  struct StateCode dequeue() throw(CobottaException, std::runtime_error);
+  void moveToStandby() noexcept(false);
+  void moveToNormal() noexcept(false);
+  void forceMoveToStandby() noexcept(false);
+  struct StateCode dequeue() noexcept(false);
 
   bool isNormal() const;
   bool isSafeState() const;
@@ -86,8 +86,8 @@ public:
 
 private:
   static void writeHwState(const int fd,
-                           const enum SafetyMcuCommand command) throw(CobottaException, std::runtime_error);
-  static struct StateCode readHwQueue(const int fd) throw(CobottaException, std::runtime_error);
+                           const enum SafetyMcuCommand command) noexcept(false);
+  static struct StateCode readHwQueue(const int fd) noexcept(false);
 
   std::shared_ptr<Cobotta> getParent() const;
 

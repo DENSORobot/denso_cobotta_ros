@@ -58,17 +58,17 @@ public:
   bool shouldStop();
   bool isRunning(void) const;
   bool canStart(void) const;
-  void start(void) throw(CobottaException, std::runtime_error);
-  void stop(void) throw(CobottaException, std::runtime_error);
-  static void sendStop(int fd) throw(CobottaException, std::runtime_error);
+  void start(void) noexcept(false);
+  void stop(void) noexcept(false);
+  static void sendStop(int fd) noexcept(false);
 
   enum MotorState getState() const;
 
-  static int readHw(int fd) throw(CobottaException, std::runtime_error);
+  static int readHw(int fd) noexcept(false);
 
 private:
-  static void writeHwOn(int fd) throw(CobottaException, std::runtime_error);
-  static void writeHwOff(int fd) throw(CobottaException, std::runtime_error);
+  static void writeHwOn(int fd) noexcept(false);
+  static void writeHwOff(int fd) noexcept(false);
 
   std::shared_ptr<cobotta::Cobotta> getParent() const;
 

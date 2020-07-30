@@ -41,14 +41,14 @@ public:
   virtual ~MiniIo() = default;
 
   bool update(const uint16_t input, uint16_t output);
-  void sendOutputStateValue(const uint16_t state) throw(CobottaException, std::runtime_error);
-  uint16_t receiveInputStateValue() const throw(CobottaException, std::runtime_error);
-  uint16_t receiveOutputStateValue() const throw(CobottaException, std::runtime_error);
+  void sendOutputStateValue(const uint16_t state) noexcept(false);
+  uint16_t receiveInputStateValue() const noexcept(false);
+  uint16_t receiveOutputStateValue() const noexcept(false);
 
 private:
-  static void writeHwOutput(const int fd, uint16_t value) throw(CobottaException, std::runtime_error);
-  static uint16_t readHwOutput(const int fd) throw(CobottaException, std::runtime_error);
-  static uint16_t readHwInput(const int fd) throw(CobottaException, std::runtime_error);
+  static void writeHwOutput(const int fd, uint16_t value) noexcept(false);
+  static uint16_t readHwOutput(const int fd) noexcept(false);
+  static uint16_t readHwInput(const int fd) noexcept(false);
 
   std::shared_ptr<Cobotta> getParent() const;
 

@@ -48,19 +48,19 @@ public:
   bool update(const std::array<std::array<int, JOINT_MAX>, ARM_MAX>& state_set);
   bool isLocked(void) const;
   bool canChange(void) const;
-  void change(const int arm_no, const std::array<int, JOINT_MAX>& state) throw(std::invalid_argument,CobottaException);
-  void releaseAll(const int arm_no) throw(std::invalid_argument);
-  void releaseAll(void) throw(std::invalid_argument);
-  void lockAll(const int arm_no) throw(std::invalid_argument);
-  void lockAll(void) throw(std::invalid_argument);
+  void change(const int arm_no, const std::array<int, JOINT_MAX>& state) noexcept(false);
+  void releaseAll(const int arm_no) noexcept(false);
+  void releaseAll(void) noexcept(false);
+  void lockAll(const int arm_no) noexcept(false);
+  void lockAll(void) noexcept(false);
   bool equal(std::array<int, JOINT_MAX>, std::array<int, JOINT_MAX>);
-  std::array<int, JOINT_MAX> getArmState(int arm_no) throw(std::invalid_argument);
+  std::array<int, JOINT_MAX> getArmState(int arm_no) noexcept(false);
 
   std::array<std::array<int, JOINT_MAX>, ARM_MAX> getState() const;
 
 private:
-  static void writeHw(int fd, const int arm_no, const std::array<int, JOINT_MAX>& state) throw(CobottaException);
-  static std::array<int, JOINT_MAX> readHw(int fd, int arm_no) throw(CobottaException);
+  static void writeHw(int fd, const int arm_no, const std::array<int, JOINT_MAX>& state) noexcept(false);
+  static std::array<int, JOINT_MAX> readHw(int fd, int arm_no) noexcept(false);
 
   std::shared_ptr<Cobotta> getParent() const;
 

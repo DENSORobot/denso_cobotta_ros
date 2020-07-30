@@ -62,9 +62,9 @@ public:
   Cobotta();
   virtual ~Cobotta() = default;
 
-  bool initialize() throw(CobottaException, std::runtime_error);
+  bool initialize() noexcept(false);
   void terminate();
-  PublishInfo update() throw(CobottaException, std::runtime_error);
+  PublishInfo update() noexcept(false);
 
   int getFd() const;
   const std::unique_ptr<Brake>& getBrake() const;
@@ -87,7 +87,7 @@ private:
   std::unique_ptr<SafetyMcu> safety_mcu_;
   std::unique_ptr<Gripper> gripper_;
 
-  void open() throw(CobottaException);
+  void open() noexcept(false);
   void close();
 };
 

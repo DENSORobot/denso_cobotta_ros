@@ -44,7 +44,7 @@ Cobotta::Cobotta()
  * @exception CobottaException An error defined by COBOTTA
  * @exception RuntimeError An other error
  */
-bool Cobotta::initialize() throw(CobottaException, std::runtime_error)
+bool Cobotta::initialize() noexcept(false)
 {
   auto motor = std::make_unique<Motor>(shared_from_this());
   motor_.swap(motor);
@@ -97,7 +97,7 @@ void Cobotta::terminate()
  * @exception CobottaException An error defined by COBOTTA
  * @exception RuntimeError An other error
  */
-PublishInfo Cobotta::update() throw(CobottaException, std::runtime_error)
+PublishInfo Cobotta::update() noexcept(false)
 {
   auto all_state = getDriver()->receiveAllState();
   bool changed = false;
@@ -177,7 +177,7 @@ const std::unique_ptr<Gripper>& Cobotta::getGripper() const
 /**
  * Device open
  */
-void Cobotta::open() throw(CobottaException)
+void Cobotta::open() noexcept(false)
 {
   if (fd_ == 0)
   {

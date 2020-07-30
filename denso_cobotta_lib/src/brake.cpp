@@ -149,7 +149,7 @@ bool Brake::canChange(void) const
  * @exception CobottaException
  * @exception InvalidArgumentException
  */
-void Brake::change(const int arm_no, const std::array<int, JOINT_MAX>& state) throw(std::invalid_argument,CobottaException)
+void Brake::change(const int arm_no, const std::array<int, JOINT_MAX>& state) noexcept(false)
 {
   if(arm_no < 0 || arm_no > ARM_MAX)
   {
@@ -184,7 +184,7 @@ void Brake::change(const int arm_no, const std::array<int, JOINT_MAX>& state) th
  * [sync] Release all brakes
  * @param[in] arm_no Arm number
  */
-void Brake::releaseAll(const int arm_no) throw(std::invalid_argument)
+void Brake::releaseAll(const int arm_no) noexcept(false)
 {
   std::array<int, JOINT_MAX> state;
   for(int i = 0; i < JOINT_MAX; i++){
@@ -197,7 +197,7 @@ void Brake::releaseAll(const int arm_no) throw(std::invalid_argument)
 /**
  * [sync] Release all brakes
  */
-void Brake::releaseAll(void) throw(std::invalid_argument)
+void Brake::releaseAll(void) noexcept(false)
 {
   std::array<int, JOINT_MAX> state;
   for(int arm_no = 0; arm_no < ARM_MAX; arm_no++){
@@ -209,7 +209,7 @@ void Brake::releaseAll(void) throw(std::invalid_argument)
  * [sync] Lock all brakes
  * @param[in] arm_no Arm number
  */
-void Brake::lockAll(const int arm_no) throw(std::invalid_argument)
+void Brake::lockAll(const int arm_no) noexcept(false)
 {
   std::array<int, JOINT_MAX> state;
   for(int i = 0; i < JOINT_MAX; i++){
@@ -222,7 +222,7 @@ void Brake::lockAll(const int arm_no) throw(std::invalid_argument)
 /**
  * [sync] Lock all brakes
  */
-void Brake::lockAll(void) throw(std::invalid_argument)
+void Brake::lockAll(void) noexcept(false)
 {
   std::array<int, JOINT_MAX> state;
   for(int arm_no = 0; arm_no < ARM_MAX; arm_no++){
@@ -245,7 +245,7 @@ bool Brake::equal(std::array<int, JOINT_MAX> array, std::array<int, JOINT_MAX> a
  * @param arm_no arm no
  * @return array of brake state
  */
-std::array<int, JOINT_MAX> Brake::getArmState(int arm_no) throw(std::invalid_argument)
+std::array<int, JOINT_MAX> Brake::getArmState(int arm_no) noexcept(false)
 {
   if(arm_no < 0 || arm_no > ARM_MAX)
   {
@@ -264,7 +264,7 @@ std::array<int, JOINT_MAX> Brake::getArmState(int arm_no) throw(std::invalid_arg
  * @exception CobottaException An error defined by cobotta
  * @exception RuntimeError An other error
  */
-void Brake::writeHw(int fd, const int arm_no, const std::array<int, JOINT_MAX>& state) throw(CobottaException)
+void Brake::writeHw(int fd, const int arm_no, const std::array<int, JOINT_MAX>& state) noexcept(false)
 {
   int ret;
   IOCTL_DATA_SETBRAKE dat;
@@ -300,7 +300,7 @@ void Brake::writeHw(int fd, const int arm_no, const std::array<int, JOINT_MAX>& 
  * @exception CobottaException An error defined by cobotta
  * @exception RuntimeError An other error
  */
-std::array<int, JOINT_MAX> Brake::readHw(int fd, int arm_no) throw(CobottaException)
+std::array<int, JOINT_MAX> Brake::readHw(int fd, int arm_no) noexcept(false)
 {
   int ret;
   IOCTL_DATA_GETBRAKE dat;
