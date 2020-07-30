@@ -1,6 +1,7 @@
 <launch>
+  <arg name="gripper_type" default="parallel"/>
 
-  <!-- This file makes it easy to include the settings for trajectory execution  -->  
+  <!-- This file makes it easy to include the settings for trajectory execution  -->
 
   <!-- Flag indicating whether MoveIt! is allowed to load/unload  or switch controllers -->
   <arg name="moveit_manage_controllers" default="true"/>
@@ -12,9 +13,14 @@
   <param name="trajectory_execution/allowed_goal_duration_margin" value="0.5"/> <!-- default 0.5 -->
   <!-- Allowed joint-value tolerance for validation that trajectory's first point matches current robot state -->
   <param name="trajectory_execution/allowed_start_tolerance" value="0.01"/> <!-- default 0.01 -->
-  
+
   <!-- Load the robot specific controller manager; this sets the moveit_controller_manager ROS parameter -->
   <arg name="moveit_controller_manager" default="cobotta" />
-  <include file="$(find denso_cobotta_moveit_config)/launch/$(arg moveit_controller_manager)_moveit_controller_manager.launch.xml" />
-  
+  <include file="$(find denso_cobotta_moveit_config)/launch/$(arg moveit_controller_manager)_moveit_controller_manager.launch.xml">
+    <arg name="gripper_type" value="$(arg gripper_type)"/>
+  </include>
+
+  <!-- To avoid "Controller is taking too long to execute trajectory" -->
+  <param name="trajectory_execution/execution_duration_monitoring" value="false" />
+
 </launch>

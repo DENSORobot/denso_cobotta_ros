@@ -1,0 +1,7 @@
+int32 direction
+float64 power_percentage
+---
+bool success
+---
+float64 pressure  # Not implemented.
+bool stalled      # True iff the gripper is exerting max effort and not moving
