@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>denso_cobotta_bringup</name>
-  <version>1.2.3</version>
+  <version>1.2.4</version>
   <description>The denso_cobotta_bringup package</description>
-  <maintainer email="fa-support@denso-wave.co.jp">DENSO WAVE INCORPORATED</maintainer>
+  <maintainer email="fa-support@denso-wave.com">DENSO WAVE INCORPORATED</maintainer>
   <license>GPL</license>
-  <author email="fa-support@denso-wave.co.jp">DENSO WAVE INCORPORATED</author>
+  <author email="fa-support@denso-wave.com">DENSO WAVE INCORPORATED</author>
   <buildtool_depend>catkin</buildtool_depend>
   <export>
   </export>
