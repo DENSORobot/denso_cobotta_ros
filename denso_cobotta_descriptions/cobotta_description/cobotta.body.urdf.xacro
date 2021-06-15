@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <robot name="cobotta" xmlns:xacro="http://www.ros.org/wiki/xacro">
   <xacro:macro name="cobotta_robot"
-               params="namespace">
+               params="namespace robot_description robot_name">
 
 	<!-- Parameters for gazebo simulation.
 		NOTE: These are roughly estimated values.
@@ -30,7 +30,8 @@
 	<!-- plugin for Gazebo -->
 	<gazebo>
 		<plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
-			<robotNamespace>${namespace}/cobotta</robotNamespace>
+			<robotNamespace>${namespace}${robot_name}</robotNamespace>
+			<robotParam>${robot_description}</robotParam>
       <robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType>
       <legacyModeNS>true</legacyModeNS>
 		</plugin>
