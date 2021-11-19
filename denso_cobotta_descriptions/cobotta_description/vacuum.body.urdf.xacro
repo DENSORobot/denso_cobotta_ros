@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot name="cobotta" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:macro name="cobotta_gripper"
+               params="namespace">
+	<link name="${namespace}vacuum_base">
+		<visual>
+			<origin rpy="0 0 0" xyz="0.000000 0.000000 -0.087500"/>
+			<geometry>
+				<mesh filename="package://denso_cobotta_descriptions/cobotta_description/vacuum.dae" scale="1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<geometry>
+				<mesh filename="package://denso_cobotta_descriptions/cobotta_description/vacuum.dae" scale="1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value="1"/>
+			<origin rpy="0.000000 0.000000 0.000000" xyz="0.000000 0.000000 0.000000"/>
+			<inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+		</inertial>
+	</link>
+	<joint name="${namespace}joint_vacuum_base" type="fixed">
+		<parent link="${namespace}J6"/>
+		<child link="${namespace}vacuum_base"/>
+		<origin rpy="0.000000 0.000000 0.000000" xyz="0.000000 0.000000 0.0875000"/>
+	</joint>
+	<link name="${namespace}pad">
+		<visual>
+			<origin rpy="0 0 0" xyz="0.000000 0.000000 0.000000"/>
+			<geometry>
+				<mesh filename="package://denso_cobotta_descriptions/cobotta_description/pad.dae" scale="1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<geometry>
+				<mesh filename="package://denso_cobotta_descriptions/cobotta_description/pad.dae" scale="1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value="1"/>
+			<origin rpy="0.000000 0.000000 0.000000" xyz="0.000000 0.000000 0.000000"/>
+			<inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+		</inertial>
+	</link>
+	<joint name="${namespace}joint_pad" type="fixed">
+		<parent link="${namespace}vacuum_base"/>
+		<child link="${namespace}pad"/>
+		<origin rpy="0.000000 0.000000 0.000000" xyz="0.000000 0.000000 0.0000000"/>
+	</joint>
+  </xacro:macro>
+</robot>
